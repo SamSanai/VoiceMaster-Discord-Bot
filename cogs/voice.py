@@ -13,7 +13,7 @@ from discord.ext.commands.cooldowns import BucketType
 from time import gmtime, strftime
 
 
-class voice:
+class voice(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
