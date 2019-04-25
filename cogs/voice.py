@@ -19,9 +19,11 @@ class voice(commands.Cog):
 
     def initDB(self):
         conn = sqlite3.connect(self.db_path)
-        qry = open('voice.sql', 'r').read()
         c = conn.cursor()
-        c.execute(qry)
+        c.execute("CREATE TABLE IF NOT EXISTS `guild` ( `guildID` INTEGER, `ownerID` INTEGER, `voiceChannelID` INTEGER, `voiceCategoryID` INTEGER )")
+        c.execute("CREATE TABLE IF NOT EXISTS `guildSettings` ( `guildID` INTEGER, `channelName` TEXT, `channelLimit` INTEGER )")
+        c.execute("CREATE TABLE IF NOT EXISTS `userSettings` ( `userID` INTEGER, `channelName` TEXT, `channelLimit` INTEGER )")
+        c.execute("CREATE TABLE  IF NOT EXISTS `voiceChannel` ( `userID` INTEGER, `voiceID` INTEGER )")
         conn.commit()
         c.close()
         conn.close()
