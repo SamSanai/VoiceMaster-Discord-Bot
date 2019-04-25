@@ -15,19 +15,23 @@ import os
 
 
 class voice(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-        self.db_path = os.environ['VCB_DB_PATH'] or 'voice.db'
-        self.initDB()
+
 
     def initDB(self):
-        conn = sqlite3.commect(self.db_path)
+        conn = sqlite3.connect(self.db_path)
         qry = open('voice.sql', 'r').read()
         c = conn.cursor()
         c.execute(qry)
         conn.commit()
         c.close()
         conn.close()
+
+
+    def __init__(self, bot):
+        self.bot = bot
+        self.db_path = os.environ['VCB_DB_PATH'] or 'voice.db'
+        self.initDB()
+
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
