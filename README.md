@@ -30,3 +30,8 @@ If you'd like to support the bot you could pay for my coffee and the servers usi
 4.Open **voicecreate.py** in a text editor and replace **'Enter Discord Token here'** with your bots token
 
 5.Run the bot
+
+
+# Invite Bot to your discord
+
+https://discordapp.com/oauth2/authorize?client_id=<CLIENT_ID>&permissions=285213712&scope=bot

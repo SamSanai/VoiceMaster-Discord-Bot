@@ -11,15 +11,17 @@ from urllib.parse import quote
 import validators
 from discord.ext.commands.cooldowns import BucketType
 from time import gmtime, strftime
+import os
 
 
 class voice(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.db_path = os.environ['VCB_DB_PATH'] or 'voice.db'
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
-        conn = sqlite3.connect('voice.db')
+        conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         guildID = member.guild.id
         c.execute("SELECT voiceChannelID FROM guild WHERE guildID = ?", (guildID,))
@@ -100,7 +102,7 @@ class voice(commands.Cog):
 
     @voice.command()
     async def setup(self, ctx):
-        conn = sqlite3.connect('voice.db')
+        conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         guildID = ctx.guild.id
         id = ctx.author.id
@@ -139,7 +141,7 @@ class voice(commands.Cog):
 
     @commands.command()
     async def setlimit(self, ctx, num):
-        conn = sqlite3.connect('voice.db')
+        conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         if ctx.author.id == ctx.guild.owner.id or ctx.author.id == 151028268856770560:
             c.execute("SELECT * FROM guildSettings WHERE guildID = ?", (ctx.guild.id,))
@@ -160,7 +162,7 @@ class voice(commands.Cog):
 
     @voice.command()
     async def lock(self, ctx):
-        conn = sqlite3.connect('voice.db')
+        conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         id = ctx.author.id
         c.execute("SELECT voiceID FROM voiceChannel WHERE userID = ?", (id,))
@@ -178,7 +180,7 @@ class voice(commands.Cog):
 
     @voice.command()
     async def unlock(self, ctx):
-        conn = sqlite3.connect('voice.db')
+        conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         id = ctx.author.id
         c.execute("SELECT voiceID FROM voiceChannel WHERE userID = ?", (id,))
@@ -196,7 +198,7 @@ class voice(commands.Cog):
 
     @voice.command(aliases=["allow"])
     async def permit(self, ctx, member : discord.Member):
-        conn = sqlite3.connect('voice.db')
+        conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         id = ctx.author.id
         c.execute("SELECT voiceID FROM voiceChannel WHERE userID = ?", (id,))
@@ -207,13 +209,13 @@ class voice(commands.Cog):
             channelID = voice[0]
             channel = self.bot.get_channel(channelID)
             await channel.set_permissions(member, connect=True)
-            await ctx.channel.send(f'{ctx.author.mention} You have permited {member.name} to have access to the channel. ✅')
+            await ctx.channel.send(f'{ctx.author.mention} You have permitted {member.name} to have access to the channel. ✅')
         conn.commit()
         conn.close()
 
     @voice.command(aliases=["deny"])
     async def reject(self, ctx, member : discord.Member):
-        conn = sqlite3.connect('voice.db')
+        conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         id = ctx.author.id
         guildID = ctx.guild.id
@@ -239,7 +241,7 @@ class voice(commands.Cog):
 
     @voice.command()
     async def limit(self, ctx, limit):
-        conn = sqlite3.connect('voice.db')
+        conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         id = ctx.author.id
         c.execute("SELECT voiceID FROM voiceChannel WHERE userID = ?", (id,))
@@ -263,7 +265,7 @@ class voice(commands.Cog):
 
     @voice.command()
     async def name(self, ctx,*, name):
-        conn = sqlite3.connect('voice.db')
+        conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         id = ctx.author.id
         c.execute("SELECT voiceID FROM voiceChannel WHERE userID = ?", (id,))
@@ -287,7 +289,7 @@ class voice(commands.Cog):
     @voice.command()
     async def claim(self, ctx):
         x = False
-        conn = sqlite3.connect('voice.db')
+        conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         channel = ctx.author.voice.channel
         if channel == None:
