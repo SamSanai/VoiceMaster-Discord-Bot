@@ -18,7 +18,7 @@ class voice(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.db_path = os.environ['VCB_DB_PATH'] or 'voice.db'
-        initDB()
+        self.initDB()
 
     def initDB(self):
         conn = sqlite3.commect(self.db_path)
