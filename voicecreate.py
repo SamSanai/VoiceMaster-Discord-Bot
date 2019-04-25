@@ -8,12 +8,13 @@ from random import randint
 import traceback
 import sqlite3
 import sys
+import os
 
 client = discord.Client()
 
 bot = commands.Bot(command_prefix=".")
 bot.remove_command("help")
-DISCORD_TOKEN = 'Enter Discord Token here'
+DISCORD_TOKEN = os.environ['DISCORD_BOT_TOKEN']
 
 initial_extensions = ['cogs.voice']
 
