@@ -12,6 +12,8 @@ Enjoy the code, don't try to release it as your own bot. :)
 
 If you'd like to support the bot you could pay for my coffee and the servers using the link below <3  [https://www.paypal.me/ssanaizadeh](https://www.paypal.me/ssanaizadeh)
 
+Support Server for the bot: https://discord.gg/y9pgpbt
+
 
 # How to setup the bot:
 
