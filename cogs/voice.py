@@ -90,7 +90,8 @@ class voice(commands.Cog):
                         f'**Change your channel limit by using the following command:**\n\n`.voice limit number`\n\n**Example:** `.voice limit 2`\n\n------------\n\n'
                         f'**Give users permission to join by using the following command:**\n\n`.voice permit @person`\n\n**Example:** `.voice permit @Sam#9452`\n\n------------\n\n'
                         f'**Claim ownership of channel once the owner has left:**\n\n`.voice claim`\n\n**Example:** `.voice claim`\n\n------------\n\n'
-                        f'**Remove permission and the user from your channel using the following command:**\n\n`.voice reject @person`\n\n**Example:** `.voice reject @Sam#9452`\n\n', inline='false')
+                        f'**Remove permission and the user from your channel using the following command:**\n\n`.voice reject @person`\n\n**Example:** `.voice reject @Sam#9452`\n\n------------\n\n'
+                        f'**Change the bitrate of your channel using the following command:**\n\n`.voice bitrate <bitrate in kb/s>`\n\n**Example:** `.voice bitrate 96kbps`', inline='false')
         embed.set_footer(text='Bot developed by Sam#9452')
         await ctx.channel.send(embed=embed)
 

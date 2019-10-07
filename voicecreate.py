@@ -13,12 +13,7 @@ client = discord.Client()
 
 bot = commands.Bot(command_prefix=".")
 bot.remove_command("help")
-try:
-    with open('discord.token', 'r') as tokeninput:
-            DISCORD_TOKEN=tokeninput.read().replace('\n', '')
-except:
-    print("Failed to read your token.")
-    exit()
+DISCORD_TOKEN = 'Enter Discord Token Here'
 
 initial_extensions = ['cogs.voice']
 
