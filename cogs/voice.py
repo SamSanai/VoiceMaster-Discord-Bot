@@ -309,6 +309,32 @@ class voice(commands.Cog):
                     c.execute("UPDATE voiceChannel SET userID = ? WHERE voiceID = ?", (id, channel.id))
             conn.commit()
             conn.close()
+    
+    @voice.command()
+    async def bitrate(self, ctx, bitrate):
+        conn = sqlite3.connect('voice.db')
+        c = conn.cursor()
+        groupID = ctx.member.guild
+        id = ctx.author.id
+        bitrate = int(''.join(i for i in bitrate if i.isdigit())) * 1000
+        c.execute("SELECT voiceID FROM voiceChannel WHERE userID = ?", (id,))
+        voice=c.fetchone()
+        if voice is None:
+            await ctx.channel.send(f"{ctx.author.mention} You don't own a channel.")
+        else:
+            if 8000 <= bitrate <= g.bitrate_limit:
+                channelID = voice[0]
+                role = discord.utils.get(ctx.guild.roles, name='@everyone')
+                channel = self.bot.get_channel(channelID)
+                await channel.edit(bitrate=bitrate)
+                bitrate = int(bitrate / 1000)
+                await ctx.channel.send(f'{ctx.author.mention} Changed bitrate to {bitrate}kbps.')
+
+            else:
+                await ctx.channel.send(f"{ctx.author.mention} You gave an invalid bitrate.")
+        conn.commit()
+        conn.close()
+
 
 
 def setup(bot):
