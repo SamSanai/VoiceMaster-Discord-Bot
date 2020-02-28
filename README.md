@@ -14,6 +14,9 @@ If you'd like to support the bot you could pay for my coffee and the servers usi
 
 Support Server for the bot: https://discord.gg/y9pgpbt
 
+**This version of the bot is sufficient enough for casual use on afew servers, I have no intention what so ever of updating it nor will support anyone with hosting it.**
+
+**I won't be releasing the new version of the bots source code either so don't ask.**
 
 # How to setup the bot:
 
