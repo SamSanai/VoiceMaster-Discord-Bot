@@ -32,6 +32,13 @@ Support Server for the bot: https://discord.gg/y9pgpbt
   
 3.Download the bot from github
 
-4.Open **voicecreate.py** in a text editor and replace **'Enter Discord Token here'** with your bots token
+4. The discord token is loaded in from a config file. You will need to create this file. Create a file named **discord.ini**. That file should have the following format:
+```
+[discord]
+token = 
+
+```
+To the right of the equals sign put your token.
+
 
 5.Run the bot

@@ -8,12 +8,16 @@ from random import randint
 import traceback
 import sqlite3
 import sys
+import configparser
 
 client = discord.Client()
 
 bot = commands.Bot(command_prefix=".")
 bot.remove_command("help")
-DISCORD_TOKEN = 'Enter Discord Token here'
+
+config = configparser.ConfigParser()
+config.read("discord.ini")
+DISCORD_TOKEN = config["discord"]["token"]
 
 initial_extensions = ['cogs.voice']
 
