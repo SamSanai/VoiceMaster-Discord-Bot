@@ -140,7 +140,5 @@ class voice(commands.Cog):
     async def info_error(self, ctx, error):
         print(error)
 
-
-
 def setup(bot):
     bot.add_cog(voice(bot))
