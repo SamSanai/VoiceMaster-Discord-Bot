@@ -11,8 +11,13 @@ from urllib.parse import quote
 from discord.ext.commands.cooldowns import BucketType
 from time import gmtime, strftime
 
+import pdb
+
 
 class voice(commands.Cog):
+    ADMIN_BITMAP = 8
+    PROMPT_TIMEOUT = 60
+
     def __init__(self, bot):
         self.bot = bot
 
@@ -21,6 +26,7 @@ class voice(commands.Cog):
         conn = sqlite3.connect('voice.db')
         c = conn.cursor()
         guildID = member.guild.id
+        pdb.set_trace()
         c.execute("SELECT voiceChannelID FROM guild WHERE guildID = ?", (guildID,))
         voice=c.fetchone()
         if voice is None:
@@ -97,17 +103,57 @@ class voice(commands.Cog):
     async def voice(self, ctx):
         pass
 
+    # https://discordapp.com/developers/docs/topics/permissions
+    def isAdmin(self, ctx):
+        callersPermissions = ctx.message.author.guild_permissions.value
+    
+        return callersPermissions & self.ADMIN_BITMAP == self.ADMIN_BITMAP
+
+    async def setupPrompt(self, ctx):
+        def check(m):
+                return m.author.id == ctx.author.id
+        response = None
+        try:
+            response = await self.bot.wait_for('message', check=check, timeout = self.PROMPT_TIMEOUT)
+        except asyncio.TimeoutError:
+                await ctx.channel.send('Took too long to answer!')
+
+        return response
+
+    def cleanup(self):
+        return 
+
     @voice.command()
     async def setup(self, ctx):
         conn = sqlite3.connect('voice.db')
         c = conn.cursor()
         guildID = ctx.guild.id
         id = ctx.author.id
+        # pdb.set_trace()
+
+        if self.isAdmin(ctx):
+            await ctx.channel.send("**You have " +str(self.PROMPT_TIMEOUT) +" seconds to answer each question!**")
+
+            await ctx.channel.send(f"**Enter the name of the category you wish to create the channels in:(e.g Voice Channels)**")
+            category = await self.setupPrompt(ctx)
+            if category == None: return
+
+            await ctx.channel.send('**Enter the name of the voice channel: (e.g Join To Create)**')
+            channel = await self.setupPrompt(ctx)
+            if channel == None: return
+
+        new_cat = await ctx.guild.create_category_channel(category.content)
+        channel = await ctx.guild.create_voice_channel(channel.content, category=new_cat)
+
+        # pdb.set_trace()
+        return
+
+
         if ctx.author.id == ctx.guild.owner.id:
             def check(m):
                 return m.author.id == ctx.author.id
-            await ctx.channel.send("**You have 60 seconds to answer each question!**")
-            await ctx.channel.send(f"**Enter the name of the category you wish to create the channels in:(e.g Voice Channels)**")
+            # await ctx.channel.send("**You have 60 seconds to answer each question!**")
+            # await ctx.channel.send(f"**Enter the name of the category you wish to create the channels in:(e.g Voice Channels)**")
             try:
                 category = await self.bot.wait_for('message', check=check, timeout = 60.0)
             except asyncio.TimeoutError:
