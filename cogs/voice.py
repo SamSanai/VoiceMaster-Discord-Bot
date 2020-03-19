@@ -28,13 +28,21 @@ class voice(commands.Cog):
         guildId = member.guild.id
         c.execute("SELECT * FROM guilds WHERE guildId = ?", (guildId,))
         guildInfo = c.fetchone()
+
+        c.execute("SELECT channelId FROM channels WHERE guildId = ?", (guildId,))
+        managedChannelsReturn = c.fetchall()
+        managedChannels = [channelTuple[0] for channelTuple in managedChannelsReturn] 
+
         
         if guildInfo != None and after.channel != None and guildInfo[2] == after.channel.id:
             category = self.bot.get_channel(guildInfo[1])
             createdChannel = await member.guild.create_voice_channel("Public",category=category)
             await member.move_to(createdChannel)
-        else:
-            print("don't create")
+            c.execute("INSERT INTO channels VALUES (?, ?)", (createdChannel.id,guildInfo[0]))
+        
+        if after.channel != before.channel and before.channel != None and len(before.channel.members) == 0 and before.channel.id in managedChannels:
+            await before.channel.delete()
+            c.execute('DELETE FROM channels WHERE channelId=?', (before.channel.id,))
 
 
         conn.commit()
