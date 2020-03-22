@@ -21,47 +21,6 @@ class voice(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.Cog.listener()
-    async def on_voice_state_update(self, member, before, after):
-        conn = sqlite3.connect('voice.db')
-        c = conn.cursor()
-        guildId = member.guild.id
-        c.execute("SELECT * FROM guilds WHERE guildId = ?", (guildId,))
-        guildInfo = c.fetchone()
-
-        c.execute("SELECT channelId FROM channels WHERE guildId = ?", (guildId,))
-        managedChannelsReturn = c.fetchall()
-        managedChannels = [channelTuple[0] for channelTuple in managedChannelsReturn] 
-
-        
-        if guildInfo != None and after.channel != None and guildInfo[2] == after.channel.id:
-            category = self.bot.get_channel(guildInfo[1])
-            createdChannel = await member.guild.create_voice_channel("Public",category=category)
-            await member.move_to(createdChannel)
-            c.execute("INSERT INTO channels VALUES (?, ?)", (createdChannel.id,guildInfo[0]))
-        
-        if after.channel != before.channel and before.channel != None and len(before.channel.members) == 0 and before.channel.id in managedChannels:
-            await before.channel.delete()
-            c.execute('DELETE FROM channels WHERE channelId=?', (before.channel.id,))
-
-
-        conn.commit()
-        conn.close()
-
-    @commands.command()
-    async def help(self, ctx):
-        embed = discord.Embed(title="Help", description="",color=0x7289da)
-        embed.set_author(name="Voice Create",url="https://discordbots.org/bot/472911936951156740", icon_url="https://i.imgur.com/i7vvOo5.png")
-        embed.add_field(name=f'**Commands**', value=f'**Lock your channel by using the following command:**\n\n`.voice lock`\n\n------------\n\n'
-                        f'**Unlock your channel by using the following command:**\n\n`.voice unlock`\n\n------------\n\n'
-                        f'**Change your channel name by using the following command:**\n\n`.voice name <name>`\n\n**Example:** `.voice name EU 5kd+`\n\n------------\n\n'
-                        f'**Change your channel limit by using the following command:**\n\n`.voice limit number`\n\n**Example:** `.voice limit 2`\n\n------------\n\n'
-                        f'**Give users permission to join by using the following command:**\n\n`.voice permit @person`\n\n**Example:** `.voice permit @Sam#9452`\n\n------------\n\n'
-                        f'**Claim ownership of channel once the owner has left:**\n\n`.voice claim`\n\n**Example:** `.voice claim`\n\n------------\n\n'
-                        f'**Remove permission and the user from your channel using the following command:**\n\n`.voice reject @person`\n\n**Example:** `.voice reject @Sam#9452`\n\n', inline='false')
-        embed.set_footer(text='Bot developed by Sam#9452')
-        await ctx.channel.send(embed=embed)
-
     @commands.group()
     async def voice(self, ctx):
         pass
@@ -77,14 +36,12 @@ class voice(commands.Cog):
             if self.hasBeenSetup(c, guildId):
                 await ctx.channel.send("**ERROR**: Public voice channels already set up")
                 return
-            
-            await ctx.channel.send("**You have " +str(self.PROMPT_TIMEOUT) +" seconds to answer each question!**")
 
-            await ctx.channel.send(f"**Enter the name of the category you wish to create the channels in:(e.g Voice Channels)**")
+            await ctx.channel.send(f"Enter the name of the category you wish to create the channels in:")
             category = await self.setupPrompt(ctx)
             if category == None: return
 
-            await ctx.channel.send('**Enter the name of the voice channel: (e.g Join To Create)**')
+            await ctx.channel.send("Enter the name of the voice channel:")
             channel = await self.setupPrompt(ctx)
             if channel == None: return
 
@@ -121,6 +78,37 @@ class voice(commands.Cog):
         
         return hasManagedChannels != None
 
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member, before, after):
+        conn = sqlite3.connect('voice.db')
+        c = conn.cursor()
+        guildId = member.guild.id
+        c.execute("SELECT * FROM guilds WHERE guildId = ?", (guildId,))
+        guildInfo = c.fetchone()
+
+        c.execute("SELECT channelId FROM channels WHERE guildId = ?", (guildId,))
+        managedChannelsReturn = c.fetchall()
+        managedChannels = [channelTuple[0] for channelTuple in managedChannelsReturn] 
+
+        
+        if self.requestedNewChannel(guildInfo, after):
+            category = self.bot.get_channel(guildInfo[1])
+            createdChannel = await member.guild.create_voice_channel("Public",category=category)
+            await member.move_to(createdChannel)
+            c.execute("INSERT INTO channels VALUES (?, ?)", (createdChannel.id,guildInfo[0]))
+        
+        if self.channelNeedsDeleted(before, after, managedChannels):
+            await before.channel.delete()
+            c.execute('DELETE FROM channels WHERE channelId=?', (before.channel.id,))
+
+        conn.commit()
+        conn.close()
+    
+    def requestedNewChannel(self, guildInfo, after):
+        return guildInfo != None and after.channel != None and guildInfo[2] == after.channel.id
+
+    def channelNeedsDeleted(self, before, after, managedChannels):
+        return after.channel != before.channel and before.channel != None and len(before.channel.members) == 0 and before.channel.id in managedChannels
 
     @setup.error
     async def info_error(self, ctx, error):
