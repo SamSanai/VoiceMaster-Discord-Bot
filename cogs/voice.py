@@ -37,7 +37,7 @@ class voice(commands.Cog):
                 await ctx.channel.send("**ERROR**: Public voice channels already set up")
                 return
 
-            await ctx.channel.send(f"Enter the name of the category you wish to create the channels in:")
+            await ctx.channel.send("Enter the name of the category you wish to create the channels in:")
             category = await self.setupPrompt(ctx)
             if category == None: return
 
@@ -47,48 +47,70 @@ class voice(commands.Cog):
 
         category = await ctx.guild.create_category_channel(category.content)
         channel = await ctx.guild.create_voice_channel(channel.content, category=category)
-                
-        c.execute ("INSERT INTO guilds VALUES (?, ?, ?)",(guildId, category.id, channel.id))
+
+        c.execute("INSERT INTO guilds VALUES (?, ?, ?)",
+                  (guildId, category.id, channel.id))
         await ctx.channel.send("You are all setup and ready to go!")
 
         conn.commit()
         conn.close()
-        return
-
-    # https://discordapp.com/developers/docs/topics/permissions
-    def isAdmin(self, ctx):
-        callersPermissions = ctx.message.author.guild_permissions.value
-    
-        return callersPermissions & self.ADMIN_BITMAP == self.ADMIN_BITMAP
-
-    async def setupPrompt(self, ctx):
-        def check(m):
-                return m.author.id == ctx.author.id
-        response = None
-        try:
-            response = await self.bot.wait_for('message', check=check, timeout = self.PROMPT_TIMEOUT)
-        except asyncio.TimeoutError:
-                await ctx.channel.send('Took too long to answer!')
-
-        return response
-    
-    def hasBeenSetup(self, cursor, guildId):
-        cursor.execute("SELECT * FROM guilds WHERE guildId = ?", (guildId,))
-        hasManagedChannels = cursor.fetchone()
         
-        return hasManagedChannels != None
+    @voice.command()
+    async def remove(self, ctx):
+        conn = sqlite3.connect('voice.db')
+        c = conn.cursor()
+        guildId = ctx.message.guild.id
+        guildInfo = self.getGuildInfo(c, guildId)
+        if guildInfo == None: return
+
+        managedChannels = self.getManagedChannels(c, guildId)
+
+        for channelId in managedChannels:
+            channel = ctx.guild.get_channel(channelId)
+            await channel.delete()
+            c.execute('DELETE FROM channels WHERE channelId=?', (channelId,))
+
+        creationChannel = ctx.guild.get_channel(guildInfo[2])
+        await creationChannel.delete()
+
+        categories = ctx.guild.categories
+        managedCategory = self.getManagedCategory(categories, guildInfo)
+
+        await managedCategory.delete()
+
+        c.execute("DELETE FROM guilds WHERE guildId=?", (guildId, ))
+
+        conn.commit()
+        conn.close()
+
+    @voice.command()
+    async def cleanup(self, ctx):
+        conn = sqlite3.connect('voice.db')
+        c = conn.cursor()
+        guildId = ctx.message.guild.id
+        guildInfo = self.getGuildInfo(c, guildId)
+        if guildInfo == None: return
+
+        managedChannels = self.getManagedChannels(c, guildId)
+        voiceChannelsInCategory = self.getManagedCategory(ctx.guild.categories, guildInfo).voice_channels
+        for channel in voiceChannelsInCategory:
+            if channel.id in managedChannels and len(channel.members) == 0:
+                await channel.delete()
+                c.execute('DELETE FROM channels WHERE channelId=?', (channel.id,))
+            elif channel.id not in managedChannels and channel.id != guildInfo[2]:
+                await channel.delete()
+
+        conn.commit()
+        conn.close()
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
         conn = sqlite3.connect('voice.db')
         c = conn.cursor()
         guildId = member.guild.id
-        c.execute("SELECT * FROM guilds WHERE guildId = ?", (guildId,))
-        guildInfo = c.fetchone()
-
-        c.execute("SELECT channelId FROM channels WHERE guildId = ?", (guildId,))
-        managedChannelsReturn = c.fetchall()
-        managedChannels = [channelTuple[0] for channelTuple in managedChannelsReturn] 
+        
+        guildInfo = self.getGuildInfo(c, guildId)
+        managedChannels = self.getManagedChannels(c, guildId) 
 
         
         if self.requestedNewChannel(guildInfo, after):
@@ -103,6 +125,41 @@ class voice(commands.Cog):
 
         conn.commit()
         conn.close()
+
+    # https://discordapp.com/developers/docs/topics/permissions
+    def isAdmin(self, ctx):
+        callersPermissions = ctx.message.author.guild_permissions.value
+
+        return callersPermissions & self.ADMIN_BITMAP == self.ADMIN_BITMAP
+
+    async def setupPrompt(self, ctx):
+        def check(m):
+                return m.author.id == ctx.author.id
+        response = None
+        try:
+            response = await self.bot.wait_for('message', check=check, timeout=self.PROMPT_TIMEOUT)
+        except asyncio.TimeoutError:
+                await ctx.channel.send('Took too long to answer!')
+
+        return response
+
+    def hasBeenSetup(self, cursor, guildId):
+        cursor.execute("SELECT * FROM guilds WHERE guildId = ?", (guildId,))
+        hasManagedChannels = cursor.fetchone()
+
+        return hasManagedChannels != None
+
+    def getManagedCategory(self, categories, guildInfo):
+        return [category for category in categories if category.id == guildInfo[1]][0]
+
+    def getGuildInfo(self, cursor, guildId):
+        cursor.execute("SELECT * FROM guilds WHERE guildId = ?", (guildId,))
+        return cursor.fetchone()
+
+    def getManagedChannels(self, cursor, guildId):
+        cursor.execute("SELECT channelId FROM channels WHERE guildId = ?", (guildId,))
+        managedChannelsReturn = cursor.fetchall()
+        return [channelTuple[0] for channelTuple in managedChannelsReturn]  
     
     def requestedNewChannel(self, guildInfo, after):
         return guildInfo != None and after.channel != None and guildInfo[2] == after.channel.id
