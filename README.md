@@ -2,6 +2,11 @@
 
 ![](./doc/openvoice.gif)
 
+## Commands 
+- setup: Sets the bot up in the server
+- remove: Removes all the channels and category this bot manages
+- cleanup: Deletes empty channels that were created in the bots category and any channel that wasn't created by the bot
+
 
 ![](./doc/Setup.PNG)
 
