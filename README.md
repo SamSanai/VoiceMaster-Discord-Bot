@@ -3,7 +3,7 @@
 ![](./doc/openvoice.gif)
 
 
-![](./doc/Setup.png)
+![](./doc/Setup.PNG)
 
 
 
