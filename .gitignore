@@ -1,3 +1,4 @@
-discordProd.ini
-discordDev.yml
+resources/*
+!resources/.gitkeep
+
 __pycache__
