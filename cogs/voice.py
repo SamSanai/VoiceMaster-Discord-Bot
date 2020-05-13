@@ -26,16 +26,12 @@ class voice(commands.Cog):
         pass
 
     @voice.command()
-    async def setup(self, ctx):
+    async def setupPublic(self, ctx):
         conn = sqlite3.connect('voice.db')
         c = conn.cursor()
         guildId = ctx.guild.id
 
         if self.isAdmin(ctx):
-
-            if self.hasBeenSetup(c, guildId):
-                await ctx.channel.send("**ERROR**: Public voice channels already set up")
-                return
 
             await ctx.channel.send("Enter the name of the category you wish to create the channels in:")
             category = await self.setupPrompt(ctx)
@@ -112,12 +108,13 @@ class voice(commands.Cog):
         guildInfo = self.getGuildInfo(c, guildId)
         managedChannels = self.getManagedChannels(c, guildId) 
 
+        requestedInfo = self.requestedNewChannel(guildInfo, after)
         
-        if self.requestedNewChannel(guildInfo, after):
-            category = self.bot.get_channel(guildInfo[1])
+        if requestedInfo:
+            category = self.bot.get_channel(requestedInfo[1])
             createdChannel = await member.guild.create_voice_channel("Public",category=category)
             await member.move_to(createdChannel)
-            c.execute("INSERT INTO channels VALUES (?, ?)", (createdChannel.id,guildInfo[0]))
+            c.execute("INSERT INTO channels VALUES (?, ?)", (createdChannel.id,requestedInfo[0]))
         
         if self.channelNeedsDeleted(before, after, managedChannels):
             await before.channel.delete()
@@ -154,7 +151,7 @@ class voice(commands.Cog):
 
     def getGuildInfo(self, cursor, guildId):
         cursor.execute("SELECT * FROM guilds WHERE guildId = ?", (guildId,))
-        return cursor.fetchone()
+        return cursor.fetchall()
 
     def getManagedChannels(self, cursor, guildId):
         cursor.execute("SELECT channelId FROM channels WHERE guildId = ?", (guildId,))
@@ -162,12 +159,14 @@ class voice(commands.Cog):
         return [channelTuple[0] for channelTuple in managedChannelsReturn]  
     
     def requestedNewChannel(self, guildInfo, after):
-        return guildInfo != None and after.channel != None and guildInfo[2] == after.channel.id
+        for info in guildInfo:
+            if info != None and after.channel != None and info[2] == after.channel.id:
+                return info
 
     def channelNeedsDeleted(self, before, after, managedChannels):
         return after.channel != before.channel and before.channel != None and len(before.channel.members) == 0 and before.channel.id in managedChannels
 
-    @setup.error
+    @setupPublic.error
     async def info_error(self, ctx, error):
         print(error)
 

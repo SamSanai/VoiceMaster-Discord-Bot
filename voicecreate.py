@@ -16,7 +16,7 @@ bot = commands.Bot(command_prefix=".")
 bot.remove_command("help")
 
 config = configparser.ConfigParser()
-config.read("discord.ini")
+config.read("./resources/local.ini")
 DISCORD_TOKEN = config["discord"]["token"]
 
 initial_extensions = ['cogs.voice']
