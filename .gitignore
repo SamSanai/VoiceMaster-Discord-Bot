@@ -1,2 +1,3 @@
-discord.ini
+discordProd.ini
+discordDev.yml
 __pycache__
