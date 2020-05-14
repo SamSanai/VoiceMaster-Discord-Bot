@@ -26,6 +26,34 @@ class voice(commands.Cog):
         pass
 
     @voice.command()
+    async def setupPrivate(self, ctx):
+        conn = sqlite3.connect('voice.db')
+        c = conn.cursor()
+        guildId = ctx.guild.id
+
+        if self.isAdmin(ctx):
+            category, channel = self.getSetupData(ctx)
+
+            if  category == None or channel == None:
+                return
+            
+        conn.commit()
+        conn.close()
+
+    async def getSetupData(self, ctx):
+        await ctx.channel.send("Enter the name of the category you wish to create the channels in:")
+        category = await self.setupPrompt(ctx)
+        if category == None: return
+
+        await ctx.channel.send("Enter the name of the voice channel:")
+        channel = await self.setupPrompt(ctx)
+        if channel == None: return
+
+        return category, channel
+
+
+
+    @voice.command()
     async def setupPublic(self, ctx):
         conn = sqlite3.connect('voice.db')
         c = conn.cursor()
