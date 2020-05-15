@@ -17,6 +17,8 @@ import pdb
 class voice(commands.Cog):
     ADMIN_BITMAP = 8
     PROMPT_TIMEOUT = 60
+    PRIVATE = "private"
+    PUBLIC = "public"
 
     def __init__(self, bot):
         self.bot = bot
@@ -32,10 +34,17 @@ class voice(commands.Cog):
         guildId = ctx.guild.id
 
         if self.isAdmin(ctx):
-            category, channel = self.getSetupData(ctx)
+            category, channel = await self.getSetupData(ctx)
 
             if  category == None or channel == None:
                 return
+            
+            category = await ctx.guild.create_category_channel(category.content)
+            channel = await ctx.guild.create_voice_channel(channel.content, category=category)
+
+            c.execute("INSERT INTO guilds VALUES (?, ?, ?, ?)",
+                    (guildId, category.id, channel.id, self.PRIVATE))
+            await ctx.channel.send("You are all setup and ready to go!")
             
         conn.commit()
         conn.close()
@@ -61,20 +70,17 @@ class voice(commands.Cog):
 
         if self.isAdmin(ctx):
 
-            await ctx.channel.send("Enter the name of the category you wish to create the channels in:")
-            category = await self.setupPrompt(ctx)
-            if category == None: return
+            category, channel = await self.getSetupData(ctx)
 
-            await ctx.channel.send("Enter the name of the voice channel:")
-            channel = await self.setupPrompt(ctx)
-            if channel == None: return
+            if  category == None or channel == None:
+                return
+            
+            category = await ctx.guild.create_category_channel(category.content)
+            channel = await ctx.guild.create_voice_channel(channel.content, category=category)
 
-        category = await ctx.guild.create_category_channel(category.content)
-        channel = await ctx.guild.create_voice_channel(channel.content, category=category)
-
-        c.execute("INSERT INTO guilds VALUES (?, ?, ?)",
-                  (guildId, category.id, channel.id))
-        await ctx.channel.send("You are all setup and ready to go!")
+            c.execute("INSERT INTO guilds VALUES (?, ?, ?, ?)",
+                    (guildId, category.id, channel.id, self.PUBLIC))
+            await ctx.channel.send("You are all setup and ready to go!")
 
         conn.commit()
         conn.close()
@@ -137,19 +143,36 @@ class voice(commands.Cog):
         managedChannels = self.getManagedChannels(c, guildId) 
 
         requestedInfo = self.requestedNewChannel(guildInfo, after)
+        print(requestedInfo)
         
         if requestedInfo:
-            category = self.bot.get_channel(requestedInfo[1])
-            createdChannel = await member.guild.create_voice_channel("Public",category=category)
-            await member.move_to(createdChannel)
-            c.execute("INSERT INTO channels VALUES (?, ?)", (createdChannel.id,requestedInfo[0]))
-        
+            if requestedInfo[-1] == self.PRIVATE:
+                await self.createPrivateChannel(member, c, requestedInfo)
+            else:
+                await self.createPublicChannel(member, c, requestedInfo)
+
         if self.channelNeedsDeleted(before, after, managedChannels):
             await before.channel.delete()
             c.execute('DELETE FROM channels WHERE channelId=?', (before.channel.id,))
 
         conn.commit()
         conn.close()
+
+    async def createPublicChannel(self, member, db, requestedInfo): 
+        category = self.bot.get_channel(requestedInfo[1])
+        createdChannel = await member.guild.create_voice_channel("Public",category=category)
+        await member.move_to(createdChannel)
+        db.execute("INSERT INTO channels VALUES (?, ?)", (createdChannel.id,requestedInfo[0]))
+
+    async def createPrivateChannel(self, member, db, requestedInfo):
+        category = self.bot.get_channel(requestedInfo[1])
+        guild = self.bot.get_guild(requestedInfo[0])
+        everyone = [role for role in guild.roles if role.name == "@everyone"][0]
+        createdChannel = await member.guild.create_voice_channel("Private",category=category)
+        await createdChannel.set_permissions(everyone,connect = False)
+        await createdChannel.set_permissions(member, connect = True, move_members = True)
+        await member.move_to(createdChannel)
+        db.execute("INSERT INTO channels VALUES (?, ?)", (createdChannel.id,requestedInfo[0]))
 
     # https://discordapp.com/developers/docs/topics/permissions
     def isAdmin(self, ctx):
