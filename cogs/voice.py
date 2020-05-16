@@ -168,12 +168,15 @@ class voice(commands.Cog):
         category = self.bot.get_channel(requestedInfo[1])
         guild = self.bot.get_guild(requestedInfo[0])
         everyone = [role for role in guild.roles if role.name == "@everyone"][0]
+
         createdChannel = await member.guild.create_voice_channel(member.display_name + "'s Private Room",category=category)
         waitingChannel = await member.guild.create_voice_channel(member.display_name + "'s Waiting Room", category=category)
+        
         await createdChannel.set_permissions(everyone,connect = False)
         await createdChannel.set_permissions(member, connect = True, move_members = True)
         await waitingChannel.set_permissions(member, move_members = True)
         await member.move_to(createdChannel)
+        
         db.execute("INSERT INTO channels VALUES (?, ?, ?)", (createdChannel.id, requestedInfo[0], waitingChannel.id))
 
     # https://discordapp.com/developers/docs/topics/permissions
