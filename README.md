@@ -35,3 +35,6 @@ Support Server for the bot: https://discord.gg/y9pgpbt
 4.Open **voicecreate.py** in a text editor and replace **'Enter Discord Token here'** with your bots token
 
 5.Run the bot
+
+
+[![Run on Repl.it](https://repl.it/badge/github/SamSanai/VoiceMaster-Discord-Bot)](https://repl.it/github/SamSanai/VoiceMaster-Discord-Bot)
