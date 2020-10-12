@@ -1,18 +1,30 @@
 # VoiceMaster
 
-Dedicated bot for creating temp voice channels with commands for changing permissions.
+Discord bot created to change the way servers run, instead of having permanent channels you can now create temporary ones that delete themselves once they are empty.
 
-This bot runs on discord.py rw If you need help with the code use the discord.py server :  [https://discord.gg/r3sSKJJ](https://discord.gg/r3sSKJJ)
+Originally I developed this bot with a small scale in mind as it was only meant to be used in my Discord server at the time, as time went on I decided to release it to the public and make the bot public so that everyone could benefit from it.
 
-As there is a very high demand for me to release the source code for my bot I've finally decided to release it.
+Since it was only meant to be used for my personal server I didn't write it very efficiently or very scalable which caused many issues down the line, sqlite really limits the bot as it suggests in the title Lite, it's not meant for big scale development with lots of requests.
 
-This was just a small project that got quite big, I wrote the bot in a day so the code is pretty sloppy.
+So after the bot started growing I decided to rewrite it from scratch and make it a lot more efficient and re write the database structure and start using Postgresql and Asyncpg to deal with the database stuff.
 
-Enjoy the code, don't try to release it as your own bot. :)
+The code on this repository is very old but still functional I will keep it functional and update any breaking changes done to Discord or Discord.py so that everyone can benefit from it.
 
-If you'd like to support the bot you could pay for my coffee and the servers using the link below <3  [https://www.paypal.me/ssanaizadeh](https://www.paypal.me/ssanaizadeh)
+I released the source code so that it might be some help to developers maybe teach them or just simply allow users to host their own version.
 
-Support Server for the bot: https://discord.gg/y9pgpbt
+I won't be releasing any new updates and won't be releasing the new source code, I have discontinued any updates and won't be helping people with hosting it there are Discord servers that will deal with that.
+
+Python Discord server:
+https://discord.gg/python
+
+Discord.py Discord server:
+https://discord.gg/dpy
+
+Our discord server:
+https://discord.gg/y9pgpbt
+
+Use our public bot:
+https://voicemaster.xyz/
 
 **This version of the bot is sufficient enough for casual use on afew servers, I have no intention what so ever of updating it nor will support anyone with hosting it.**
 
@@ -24,13 +36,13 @@ Support Server for the bot: https://discord.gg/y9pgpbt
 
 	https://www.python.org/downloads/release/python-373/
 
-2.Open command prompt and paste the following:
+2.Clone the bot from GitHub
 
-	  pip3 install discord.py
-  
-	  pip3 install validators
-  
-3.Download the bot from github
+3.Open terminal and follow these steps:
+
+	Change directory to the this folder and Type:
+
+	`pip3 install -r requirements.txt`
 
 4.Open **voicecreate.py** in a text editor and replace **'Enter Discord Token here'** with your bots token
 
