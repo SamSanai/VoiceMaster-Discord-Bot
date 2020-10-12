@@ -40,7 +40,7 @@ https://voicemaster.xyz/
 
 3.Open terminal and follow these steps:
 
-	Change directory to the this folder and Type:
+	Change directory to this folder and Type:
 
 	`pip3 install -r requirements.txt`
 
