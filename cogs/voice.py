@@ -1,16 +1,9 @@
 import discord
-import math
 import asyncio
-import aiohttp
-import json
-import datetime
 from discord.ext import commands
 import traceback
 import sqlite3
-from urllib.parse import quote
 import validators
-from discord.ext.commands.cooldowns import BucketType
-from time import gmtime, strftime
 
 
 class voice(commands.Cog):
