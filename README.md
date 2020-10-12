@@ -34,7 +34,7 @@ https://voicemaster.xyz/
 
 1.Download python using the following link:
 
-	https://www.python.org/downloads/release/python-373/
+	https://www.python.org/downloads/
 
 2.Clone the bot from GitHub
 
