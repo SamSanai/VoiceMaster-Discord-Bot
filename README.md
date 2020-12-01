@@ -14,6 +14,11 @@ I released the source code so that it might be some help to developers maybe tea
 
 I won't be releasing any new updates and won't be releasing the new source code, I have discontinued any updates and won't be helping people with hosting it there are Discord servers that will deal with that.
 
+Looking for a reliable and cheap host? This isn't a sponsor or anything just an honest recommendation.
+GalaxyGate is my go to when it comes to hosting Discord bots or anything that requires hosting, they have brilliant support.
+I'll leave my affliate link here if you wish to purchase a vps, it'd help me pay for VoiceMaster and help you find a suitable hosting service.
+https://billing.galaxygate.net/aff.php?aff=131
+
 Python Discord server:
 https://discord.gg/python
 
