@@ -1,29 +1,40 @@
 import discord
-from discord.ext import commands
+import os
 import traceback
 import sys
+from discord.ext.commands import AutoShardedBot as asb
 
-bot = commands.Bot(command_prefix=".")
+class VoiceMaster(asb):
+    def __init__(self):
+        super().__init__(
+            command_prefix=".",
+            case_insensitive=True,
+            help_command=None,
+            intents=discord.Intents.all() # remove this if you dont want to enable all intents
+        )
+        
+        self.cog_blaclist = [
+            "__init__.py",
+            "functions.py"
+        ]
+        self.remove_command("help")
+        self.token = "TOKEN HERE" # please consider using a secrets file or a token file with a .gitignore
+        
+        print("Loading cogs:")
+        for filename in os.listdir("./cogs"):
+            if filename.endswith(".py") and filename not in self.cog_blacklist:
+                try:
+                    self.load_extension(f"cogs.{filename[:-3]}")
+                    print(f"    Loaded '{filename}'")
+                except Exception as e:
+                    print(str(e))
 
-bot.remove_command("help")
+    async def on_connect(self):
+        print("Connected")
 
-DISCORD_TOKEN = 'Enter Discord Token here'
+    async def on_ready(self):
+        print("Ready")
 
-initial_extensions = ['cogs.voice']
-
-if __name__ == '__main__':
-    for extension in initial_extensions:
-        try:
-            bot.load_extension(extension)
-        except Exception as e:
-            print(f'Failed to load extension {extension}.', file=sys.stderr)
-            traceback.print_exc()
-
-@bot.event
-async def on_ready():
-    print('Logged in as')
-    print(bot.user.name)
-    print(bot.user.id)
-    print('------')
-
-bot.run(DISCORD_TOKEN)
+if __name__ == "__main__":
+    bot = VoiceMaster()
+    bot.run(bot.token)
