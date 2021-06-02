@@ -21,6 +21,7 @@ class VoiceMaster(asb):
         ]
         self.remove_command("help")
         self.token = "TOKEN HERE" # please consider using a secrets file or a token file with a .gitignore
+        self.load_cogs()
     
     def load_cogs(self):
         if not started:
