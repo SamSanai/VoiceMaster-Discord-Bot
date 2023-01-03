@@ -3,7 +3,11 @@ from discord.ext import commands
 import traceback
 import sys
 
-bot = commands.Bot(command_prefix=".")
+intents = discord.Intents.default()
+#Message content intent needs to be enabled in the developer portal for your chosen bot.
+intents.message_content = True
+
+bot = commands.Bot(command_prefix=".", intents=intents)
 
 bot.remove_command("help")
 
