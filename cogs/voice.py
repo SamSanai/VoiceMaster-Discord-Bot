@@ -76,7 +76,7 @@ class voice(commands.Cog):
     @commands.command()
     async def help(self, ctx):
         embed = discord.Embed(title="Help", description="",color=0x7289da)
-        embed.set_author(name=f"{ctx.guild.me.display_name}",url="https://discordbots.org/bot/472911936951156740", icon_url=f"{ctx.guild.me.avatar_url}")
+        embed.set_author(name=f"{ctx.guild.me.display_name}",url="https://discordbots.org/bot/472911936951156740", icon_url=f"{ctx.guild.me.display_avatar.url}")
         embed.add_field(name=f'**Commands**', value=f'**Lock your channel by using the following command:**\n\n`.voice lock`\n\n------------\n\n'
                         f'**Unlock your channel by using the following command:**\n\n`.voice unlock`\n\n------------\n\n'
                         f'**Change your channel name by using the following command:**\n\n`.voice name <name>`\n\n**Example:** `.voice name EU 5kd+`\n\n------------\n\n'
@@ -304,5 +304,5 @@ class voice(commands.Cog):
             conn.close()
 
 
-def setup(bot):
-    bot.add_cog(voice(bot))
+async def setup(bot):
+    await bot.add_cog(voice(bot))
