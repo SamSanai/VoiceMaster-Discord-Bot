@@ -16,7 +16,7 @@ SELECT_VOICE_ID_FROM_VOICE_CHANNEL_WHERE_USER_ID = "SELECT voiceID FROM voiceCha
 
 
 
-def create_new_database():
+def create_new_database() -> None:
     conn = sqlite3.connect('voice.db')
     with open('voice.db.sql', 'r') as sql_file:
         conn.executescript(sql_file.read())
@@ -25,7 +25,7 @@ def create_new_database():
 
 class FromDatabase(object):
     @classmethod
-    def get_cooldown(cls, member: discord.Member, c: sqlite3.Cursor):
+    def get_user_voice(cls, member: discord.Member, c: sqlite3.Cursor) -> Optional[tuple[int, int]]:
         c.execute(
                 "SELECT * FROM voiceChannel WHERE userID = ?",
                 (member.id,)
@@ -33,7 +33,7 @@ class FromDatabase(object):
         return c.fetchone()
 
     @classmethod
-    def get_voice(cls, guild_id: int, c: sqlite3.Cursor):
+    def get_voice_category(cls, guild_id: int, c: sqlite3.Cursor) -> tuple[int]:
         c.execute(
                 "SELECT voiceCategoryID FROM guild WHERE guildID = ?",
                 (guild_id,)
@@ -41,7 +41,7 @@ class FromDatabase(object):
         return c.fetchone()
 
     @classmethod
-    def get_setting(cls, member: discord.Member, c: sqlite3.Cursor):
+    def get_setting(cls, member: discord.Member, c: sqlite3.Cursor) -> Optional[tuple[str, int]]:
         c.execute(
                 "SELECT channelName, channelLimit FROM userSettings WHERE userID = ?",
                 (member.id,),
@@ -49,15 +49,15 @@ class FromDatabase(object):
         return c.fetchone()
 
     @classmethod
-    def get_guild_setting(cls, guild_id: int, c: sqlite3.Cursor):
+    def get_guild_setting(cls, guild_id: int, c: sqlite3.Cursor) -> Optional[tuple[str, int]]:
         c.execute(
-                "SELECT channelLimit FROM guildSettings WHERE guildID = ?",
+                "SELECT channelName, channelLimit FROM guildSettings WHERE guildID = ?",
                 (guild_id,)
             )
         return c.fetchone()
 
     @classmethod
-    def get_guild_voice(cls, guild_id: int, c: sqlite3.Cursor):
+    def get_guild_voice(cls, guild_id: int, c: sqlite3.Cursor) -> Optional[tuple[int]]:
         c.execute(
                 "SELECT voiceChannelID FROM guild WHERE guildID = ?",
                 (guild_id,)
@@ -99,12 +99,12 @@ class _Voice(commands.Cog):
         ) -> None:
         if after.channel.id != voice_id:
             return
-        cooldown = FromDatabase.get_cooldown(member, c)
-        if cooldown is not None:
+        user_channel = FromDatabase.get_user_voice(member, c)
+        if user_channel is not None:
             await member.send("Creating channels too quickly you've been put on a 15 second cooldown!")
             await asyncio.sleep(15)
             # sleeping would only DELAY spamming.
-        voice = FromDatabase.get_voice(guild_id, c)
+        voice = FromDatabase.get_voice_category(guild_id, c)
         setting = FromDatabase.get_setting(member, c)
         guild_setting = FromDatabase.get_guild_setting(guild_id, c)
 
@@ -136,6 +136,7 @@ class _Voice(commands.Cog):
         await channel_2.delete()
         # await asyncio.sleep(3) # why sleep here?
         c.execute("DELETE FROM voiceChannel WHERE userID=?", (member_id,))
+
 
     def transform_settings(
             self,
@@ -265,7 +266,7 @@ class _Voice(commands.Cog):
     async def set_limit(self, ctx: commands.Context, number: int) -> None:
         with sqlite3.connect(VOICE_DB) as conn:
             c = conn.cursor()
-            if ctx.author.id == ctx.guild.owner.id or ctx.author.id == 151028268856770560:
+            if ctx.author.id == ctx.guild.owner.id or ctx.author.id in self.bot.owner_ids:
                 c.execute("SELECT * FROM guildSettings WHERE guildID = ?", (ctx.guild.id,))
                 voice = c.fetchone()
                 if voice is None:
