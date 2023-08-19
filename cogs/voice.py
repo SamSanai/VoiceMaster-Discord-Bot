@@ -85,9 +85,9 @@ class _Voice(commands.Cog):
                     print(f"OnVoiceUpdate: {e}")
             conn.commit()
 
-    @staticmethod
+
     @commands.command()
-    async def help(ctx: commands.Context) -> None:
+    async def help(self, ctx: commands.Context) -> None:
         embed = discord.Embed(title="Help", description="", color=7506394)
         embed.set_author(
             name=f"{ctx.guild.me.display_name}",
@@ -130,9 +130,9 @@ class _Voice(commands.Cog):
         embed.set_footer(text="Bot developed by Sam#9452")
         await ctx.channel.send(embed=embed)
 
-    @staticmethod
+
     @commands.group()
-    async def voice(ctx: commands.Context) -> None:
+    async def voice(self, ctx: commands.Context) -> None:
         pass
 
     @voice.command()
@@ -191,9 +191,9 @@ class _Voice(commands.Cog):
                 )
             conn.commit()
 
-    @staticmethod
+
     @commands.command()
-    async def set_limit(ctx: commands.Context, number: int) -> None:
+    async def set_limit(self, ctx: commands.Context, number: int) -> None:
         with sqlite3.connect(VOICE_DB) as conn:
             c = conn.cursor()
             if ctx.author.id == ctx.guild.owner.id or ctx.author.id == 151028268856770560:
@@ -216,9 +216,9 @@ class _Voice(commands.Cog):
                 )
             conn.commit()
 
-    @staticmethod
+
     @setup.error
-    async def info_error(ctx: commands.Context, error: Exception) -> None:
+    async def info_error(self, ctx: commands.Context, error: Exception) -> None:
         print(error)
 
     @voice.command()
@@ -355,9 +355,9 @@ class _Voice(commands.Cog):
                     )
             conn.commit()
 
-    @staticmethod
+
     @voice.command()
-    async def claim(ctx: commands.Context) -> None:
+    async def claim(self, ctx: commands.Context) -> None:
         x = False
         with sqlite3.connect(VOICE_DB) as conn:
             c = conn.cursor()
