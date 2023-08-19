@@ -4,6 +4,12 @@ from textwrap import dedent
 import discord
 from discord.ext import commands
 
+"""
+Bot runs, and loads cog without problem.
+Tested in discord, works with setup, joining, creating.
+"""
+
+
 VOICE_DB = "voice.db"
 SELECT_VOICE_ID_FROM_VOICE_CHANNEL_WHERE_USER_ID = (
     "SELECT voiceID FROM voiceChannel WHERE userID = ?"
