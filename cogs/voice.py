@@ -231,32 +231,39 @@ class _Voice(commands.Cog):
                 guild_id = ctx.guild.id
                 check_func = partial(check_if_setup_user, ctx=ctx)
                 category, channel = await self.get_setup_answers(ctx, check_func)
-                new_cat = await ctx.guild.create_category_channel(category.content)
+                new_cat = await ctx.guild.create_category(category.content)
                 try:
-                    channel = await ctx.guild.create_voice_channel(
-                        channel.content, category=new_cat
-                    )
-                    c.execute("SELECT * FROM guild WHERE guildID = ? AND ownerID=?", (guild_id, author_id))
-                    voice = c.fetchone()
-                    if voice is None:
-                        c.execute(
-                            "INSERT INTO guild VALUES (?, ?, ?, ?)",
-                            (guild_id, author_id, channel.id, new_cat.id),
-                        )
-                    else:
-                        c.execute(
-                            "UPDATE guild SET guildID = ?, ownerID = ?, voiceChannelID = ?, voiceCategoryID = ? WHERE guildID = ?",
-                            (guild_id, author_id, channel.id, new_cat.id, guild_id),
-                        )
-                    await ctx.channel.send("**You are all setup and ready to go!**")
+                    await self.create_cat_channel(ctx, c, author_id, guild_id, new_cat, channel)
                 except Exception as e:
                     print(f"setup error {e}")
                     await ctx.channel.send("You didn't enter the names properly.\nUse `.voice setup` again!")
             else:
-                await ctx.channel.send(
-                    f"{ctx.author.mention} only the owner of the server can setup the bot!"
-                )
+                await ctx.channel.send(f"{ctx.author.mention} only the owner of the server can setup the bot!")
             conn.commit()
+
+    async def create_cat_channel(
+            self,
+            ctx: commands.Context,
+            c: sqlite3.Cursor,
+            author_id: int,
+            guild_id: int,
+            new_cat: discord.CategoryChannel,
+            channel: discord.Message
+        ) -> None:
+        channel = await ctx.guild.create_voice_channel(channel.content, category=new_cat)
+        c.execute("SELECT * FROM guild WHERE guildID = ? AND ownerID=?", (guild_id, author_id))
+        voice = c.fetchone()
+        if voice is None:
+            c.execute(
+                "INSERT INTO guild VALUES (?, ?, ?, ?)",
+                (guild_id, author_id, channel.id, new_cat.id),
+            )
+        else:
+            c.execute(
+                "UPDATE guild SET guildID = ?, ownerID = ?, voiceChannelID = ?, voiceCategoryID = ? WHERE guildID = ?",
+                (guild_id, author_id, channel.id, new_cat.id, guild_id),
+            )
+        await ctx.channel.send("**You are all setup and ready to go!**")
 
 
     async def get_setup_answers(self, ctx: commands.Context, check_func) -> tuple[discord.Message, discord.Message]:
