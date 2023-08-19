@@ -1,6 +1,7 @@
 import asyncio
 import sqlite3
 from textwrap import dedent
+from typing import Optional
 import discord
 from discord.ext import commands
 
@@ -102,19 +103,12 @@ class _Voice(commands.Cog):
         if cooldown is not None:
             await member.send("Creating channels too quickly you've been put on a 15 second cooldown!")
             await asyncio.sleep(15)
+            # sleeping would only DELAY spamming.
         voice = FromDatabase.get_voice(guild_id, c)
         setting = FromDatabase.get_setting(member, c)
         guild_setting = FromDatabase.get_guild_setting(guild_id, c)
 
-        if setting is None:
-            name = f"{member.name}'s channel"
-            limit = 0 if guild_setting is None else guild_setting[0]
-        else:
-            name = setting[0]
-            if guild_setting is None or setting[1] == 0:
-                limit = guild_setting[0]
-            else:
-                limit = setting[1]
+        name, limit = self.transform_settings(member, setting, guild_setting)
         category_id = voice[0]
         member_id = member.id
 
@@ -142,6 +136,24 @@ class _Voice(commands.Cog):
         await channel_2.delete()
         # await asyncio.sleep(3) # why sleep here?
         c.execute("DELETE FROM voiceChannel WHERE userID=?", (member_id,))
+
+    def transform_settings(
+            self,
+            member: discord.Member,
+            setting: Optional[tuple[str, int]],
+            guild_setting: Optional[tuple[str, int]]
+        ) -> tuple[str, int]:
+        print(f"transform settings: {member}, {setting=}, {guild_setting=}")
+        name = f"{member.name}'s channel" if setting is None else setting[0]
+        if (
+            setting is None 
+            or guild_setting is None 
+            or setting[1] == 0
+        ):
+            limit = 0
+        else:
+            limit = setting[1]
+        return name, limit
 
 
     @commands.command()
