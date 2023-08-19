@@ -100,6 +100,7 @@ class _Voice(commands.Cog):
                     print(f"OnVoiceUpdate: {e}")
             conn.commit()
 
+
     async def create_custom_channel(
             self,
             member: discord.Member,
@@ -218,6 +219,7 @@ class _Voice(commands.Cog):
     async def voice(self, ctx: commands.Context) -> None:
         pass
 
+
     @voice.command()
     async def setup(self, ctx: commands.Context) -> None:
         with sqlite3.connect(VOICE_DB) as conn:
@@ -240,6 +242,7 @@ class _Voice(commands.Cog):
             else:
                 await ctx.channel.send(f"{ctx.author.mention} only the owner of the server can setup the bot!")
             conn.commit()
+
 
     async def create_cat_channel(
             self,
