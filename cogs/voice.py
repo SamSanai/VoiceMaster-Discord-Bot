@@ -302,7 +302,6 @@ class _Voice(commands.Cog):
             c = conn.cursor()
             author_id = ctx.author.id
             voice = FromDatabase.get_voice_id_from_user(author_id, c)
-            voice = c.fetchone()
             if voice is None:
                 await ctx.channel.send(f"{ctx.author.mention} You don't own a channel.")
             else:
@@ -382,10 +381,7 @@ class _Voice(commands.Cog):
                 channel_id = voice[0]
                 channel = self.bot.get_channel(channel_id)
                 await channel.edit(user_limit=limit)
-                await ctx.channel.send(
-                    f"{ctx.author.mention} You have set the channel limit to be "
-                    + "{}!".format(limit)
-                )
+                await ctx.channel.send(f"{ctx.author.mention} You have set the channel limit to be {limit}!")
                 c.execute("SELECT channelName FROM userSettings WHERE userID = ?", (author_id,))
                 voice = c.fetchone()
                 if voice is None:
@@ -411,10 +407,7 @@ class _Voice(commands.Cog):
                 channel_id = voice[0]
                 channel = self.bot.get_channel(channel_id)
                 await channel.edit(name=name)
-                await ctx.channel.send(
-                    f"{ctx.author.mention} You have changed the channel name to "
-                    + "{}!".format(name)
-                )
+                await ctx.channel.send(f"{ctx.author.mention} You have changed the channel name to {name}!")
                 c.execute(
                     "SELECT channelName FROM userSettings WHERE userID = ?",
                     (author_id,)
@@ -441,33 +434,29 @@ class _Voice(commands.Cog):
             channel = ctx.author.voice.channel
             if channel is None:
                 await ctx.channel.send(f"{ctx.author.mention} you're not in a voice channel.")
+                return
+            author_id = ctx.author.id
+            c.execute(
+                "SELECT userID FROM voiceChannel WHERE voiceID = ?",
+                (channel.id,)
+            )
+            voice = c.fetchone()
+            if voice is None:
+                await ctx.channel.send(f"{ctx.author.mention} You can't own that channel!")
             else:
-                author_id = ctx.author.id
-                c.execute(
-                    "SELECT userID FROM voiceChannel WHERE voiceID = ?",
-                    (channel.id,)
-                )
-                voice = c.fetchone()
-                if voice is None:
-                    await ctx.channel.send(f"{ctx.author.mention} You can't own that channel!")
-                else:
-                    for data in channel.members:
-                        if data.id == voice[0]:
-                            owner = ctx.guild.get_member(voice[0])
-                            await ctx.channel.send(
-                                f"{ctx.author.mention} This channel is already owned by {owner.mention}!"
-                            )
-                            x = True
-                    if x is False:
-                        await ctx.channel.send(
-                            f"{ctx.author.mention} You are now the owner of the channel!"
-                        )
-                        c.execute(
-                            "UPDATE voiceChannel SET userID = ? WHERE voiceID = ?",
-                            (author_id, channel.id)
-                        )
-                conn.commit()
-                conn.close()
+                for data in channel.members:
+                    if data.id == voice[0]:
+                        owner = ctx.guild.get_member(voice[0])
+                        await ctx.channel.send(f"{ctx.author.mention} This channel is already owned by {owner.mention}!")
+                        x = True
+                if x is False:
+                    await ctx.channel.send(f"{ctx.author.mention} You are now the owner of the channel!")
+                    c.execute(
+                        "UPDATE voiceChannel SET userID = ? WHERE voiceID = ?",
+                        (author_id, channel.id)
+                    )
+            conn.commit()
+            conn.close()
 
 
 async def setup(bot: commands.Bot) -> None:
