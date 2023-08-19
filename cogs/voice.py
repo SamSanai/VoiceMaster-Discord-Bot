@@ -114,9 +114,8 @@ class _Voice(commands.Cog):
             return
         user_channel = FromDatabase.get_user_voice(member, c)
         if user_channel is not None:
-            await member.send("Creating channels too quickly you've been put on a 15 second cooldown!")
-            await asyncio.sleep(15)
-            # sleeping would only DELAY spamming.
+            await member.send(f"You already have a channel at {self.bot.get_channel(user_channel[1]).mention}")
+            return
         voice = FromDatabase.get_voice_category(guild_id, c)
         setting = FromDatabase.get_settings(member, c)
         guild_setting = FromDatabase.get_guild_settings(guild_id, c)
