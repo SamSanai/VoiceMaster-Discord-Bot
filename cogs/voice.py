@@ -13,6 +13,15 @@ Tested in discord, works with setup, joining, creating.
 VOICE_DB = "voice.db"
 SELECT_VOICE_ID_FROM_VOICE_CHANNEL_WHERE_USER_ID = "SELECT voiceID FROM voiceChannel WHERE userID = ?"
 
+
+
+def create_new_database():
+    conn = sqlite3.connect('voice.db')
+    with open('voice.db.sql', 'r') as sql_file:
+        conn.executescript(sql_file.read())
+
+    conn.close()
+
 class FromDatabase(object):
     @classmethod
     def get_cooldown(cls, member: discord.Member, c: sqlite3.Cursor):
