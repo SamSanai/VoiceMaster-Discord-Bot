@@ -13,6 +13,43 @@ Tested in discord, works with setup, joining, creating.
 VOICE_DB = "voice.db"
 SELECT_VOICE_ID_FROM_VOICE_CHANNEL_WHERE_USER_ID = "SELECT voiceID FROM voiceChannel WHERE userID = ?"
 
+class FromDatabase(object):
+    @classmethod
+    def get_cooldown(cls, member: discord.Member, c: sqlite3.Cursor):
+        c.execute(
+                "SELECT * FROM voiceChannel WHERE userID = ?",
+                (member.id,)
+            )
+        cooldown = c.fetchone()
+        return cooldown
+
+    @classmethod
+    def get_voice(cls, guild_id: int, c: sqlite3.Cursor):
+        c.execute(
+                "SELECT voiceCategoryID FROM guild WHERE guildID = ?",
+                (guild_id,)
+            )
+        voice = c.fetchone()
+        return voice
+
+    @classmethod
+    def get_setting(cls, member: discord.Member, c: sqlite3.Cursor):
+        c.execute(
+                "SELECT channelName, channelLimit FROM userSettings WHERE userID = ?",
+                (member.id,),
+            )
+        setting = c.fetchone()
+        return setting
+
+    @classmethod
+    def get_guild_setting(cls, guild_id: int, c: sqlite3.Cursor):
+        c.execute(
+                "SELECT channelLimit FROM guildSettings WHERE guildID = ?",
+                (guild_id,)
+            )
+        guild_setting = c.fetchone()
+        return guild_setting
+
 
 class _Voice(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
@@ -36,12 +73,12 @@ class _Voice(commands.Cog):
             if voice is not None:
                 voice_id = voice[0]
                 try:
-                    return await self.new_method_1(member, after, conn, c, guild_id, voice_id)
+                    return await self.create_custom_channel(member, after, conn, c, guild_id, voice_id)
                 except Exception as e:
                     print(f"OnVoiceUpdate: {e}")
             conn.commit()
 
-    async def new_method_1(
+    async def create_custom_channel(
             self,
             member: discord.Member,
             after: discord.VoiceState,
@@ -51,29 +88,14 @@ class _Voice(commands.Cog):
             voice_id: int
         ) -> None:
         if after.channel.id == voice_id:
-            c.execute(
-                "SELECT * FROM voiceChannel WHERE userID = ?",
-                (member.id,)
-            )
-            cooldown = c.fetchone()
+            cooldown = FromDatabase.get_cooldown(member, c)
             if cooldown is not None:
                 await member.send("Creating channels too quickly you've been put on a 15 second cooldown!")
                 await asyncio.sleep(15)
-            c.execute(
-                "SELECT voiceCategoryID FROM guild WHERE guildID = ?",
-                (guild_id,)
-            )
-            voice = c.fetchone()
-            c.execute(
-                "SELECT channelName, channelLimit FROM userSettings WHERE userID = ?",
-                (member.id,),
-            )
-            setting = c.fetchone()
-            c.execute(
-                "SELECT channelLimit FROM guildSettings WHERE guildID = ?",
-                (guild_id,)
-            )
-            guild_setting = c.fetchone()
+            voice = FromDatabase.get_voice(guild_id, c)
+            setting = FromDatabase.get_setting(member, c)
+            guild_setting = FromDatabase.get_guild_setting(guild_id, c)
+
             if setting is None:
                 name = f"{member.name}'s channel"
                 if guild_setting is None:
@@ -90,23 +112,28 @@ class _Voice(commands.Cog):
                     limit = setting[1]
             category_id = voice[0]
             member_id = member.id
+
             category = self.bot.get_channel(category_id)
             channel_2 = await member.guild.create_voice_channel(name, category=category)
             channel_id = channel_2.id
             await member.move_to(channel_2)
             await channel_2.set_permissions(
-                            self.bot.user, connect=True, read_messages=True
-                        )
+                self.bot.user, connect=True, read_messages=True
+            )
             await channel_2.set_permissions(member, connect=True, read_messages=True)
             await channel_2.edit(name=name, user_limit=limit)
             c.execute("INSERT INTO voiceChannel VALUES (?, ?)", (member_id, channel_id))
             conn.commit()
 
-            def check_voice_member_count(a: discord.Member, b: discord.VoiceState, c: discord.VoiceState) -> bool:
-                return len(channel_2.members) == 0
-            await self.bot.wait_for("voice_state_update", check=check_voice_member_count)
+            def check_empty_voice(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> bool:
+                c.execute("SELECT * FROM voiceChannel WHERE userId=?", member.id)
+                channels = c.fetchall()
+                # get 2nd column of each found channel, put that in user_channels
+                user_channels: list[int] = [i[1] for i in channels]
+                return (len(after.channel.members) == 0 and after.channel.id in user_channels)
+            await self.bot.wait_for("voice_state_update", check=check_empty_voice)
             await channel_2.delete()
-            await asyncio.sleep(3)
+            # await asyncio.sleep(3) # why sleep here?
             c.execute("DELETE FROM voiceChannel WHERE userID=?", (member_id,))
 
 
