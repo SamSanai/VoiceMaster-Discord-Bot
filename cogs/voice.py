@@ -112,7 +112,7 @@ class _Voice(commands.Cog):
             if before.channel and FromDatabase.get_user_voice(member, c):
                 await before.channel.delete(reason="removing empty voice")
                 c.execute("DELETE FROM voiceChannel WHERE userID=?", (member.id,))
-            if after.channel.id == voice_id:
+            if after.channel is not None and after.channel.id == voice_id:
                 try:
                     return await self.create_custom_channel(member, after, conn, c, guild_id)
                 except Exception as e:
@@ -124,7 +124,7 @@ class _Voice(commands.Cog):
     async def create_custom_channel(
             self,
             member: discord.Member,
-            after: Optional[discord.VoiceState],
+            after: discord.VoiceState,
             conn: sqlite3.Connection,
             c: sqlite3.Cursor,
             guild_id: int
