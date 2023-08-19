@@ -28,13 +28,19 @@ class _Voice(commands.Cog):
         with sqlite3.connect(VOICE_DB) as conn:
             c = conn.cursor()
             guild_id = member.guild.id
-            c.execute("SELECT voiceChannelID FROM guild WHERE guildID = ?", (guild_id,))
+            c.execute(
+                "SELECT voiceChannelID FROM guild WHERE guildID = ?",
+                (guild_id,)
+            )
             voice = c.fetchone()
             if voice is not None:
                 voice_id = voice[0]
                 try:
                     if after.channel.id == voice_id:
-                        c.execute("SELECT * FROM voiceChannel WHERE userID = ?", (member.id,))
+                        c.execute(
+                            "SELECT * FROM voiceChannel WHERE userID = ?",
+                            (member.id,)
+                        )
                         cooldown = c.fetchone()
                         if cooldown is not None:
                             await member.send("Creating channels too quickly you've been put on a 15 second cooldown!")
