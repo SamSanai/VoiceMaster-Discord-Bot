@@ -2,6 +2,7 @@ import asyncio
 from functools import partial
 import sqlite3
 from textwrap import dedent
+import traceback
 from typing import Optional
 import discord
 from discord.ext import commands
@@ -14,18 +15,25 @@ Tested in discord, works with setup, joining, creating.
 
 VOICE_DB = "voice.db"
 
-
-
-def create_new_database() -> None:
+# create new database if it doesn't exist
+try:
+    with open(VOICE_DB, "r") as f:
+        f.close()
+except FileNotFoundError:
     conn = sqlite3.connect('voice.db')
     with open('voice.db.sql', 'r') as sql_file:
         conn.executescript(sql_file.read())
-
     conn.close()
+
 
 def check_if_setup_user(m: commands.Context, ctx: commands.Context) -> bool:
     """Check if message send, is from `.voice setup` user"""
     return m.author.id == ctx.author.id
+
+
+def check_empty_voice(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> bool:
+    print(f"check empty: {member}, {before}, {after}")
+    return (len(before.channel.members) == 0)
 
 
 class FromDatabase(object):
@@ -69,7 +77,7 @@ class FromDatabase(object):
         return c.fetchone()
 
     @classmethod
-    def get_guild_voice(cls, guild_id: int, c: sqlite3.Cursor) -> Optional[tuple[int]]:
+    def get_guild_voice_id(cls, guild_id: int, c: sqlite3.Cursor) -> Optional[tuple[int]]:
         c.execute(
                 "SELECT voiceChannelID FROM guild WHERE guildID = ?",
                 (guild_id,)
@@ -85,37 +93,49 @@ class _Voice(commands.Cog):
     async def on_voice_state_update(
         self,
         member: discord.Member,
-        before: discord.VoiceChannel,
-        after: discord.VoiceChannel
+        before: discord.VoiceState,
+        after: discord.VoiceState
     ) -> None:
         with sqlite3.connect(VOICE_DB) as conn:
             c = conn.cursor()
             guild_id = member.guild.id
-            voice = FromDatabase.get_guild_voice(guild_id, c)
-            if voice is not None:
-                voice_id = voice[0]
+            voice_create = FromDatabase.get_guild_voice_id(guild_id, c)
+
+            if voice_create is None:
+                return
+
+            voice_id = voice_create[0]
+
+            if before.channel is not None and before.channel.id == voice_id:
+                return
+
+            if before.channel and FromDatabase.get_user_voice(member, c):
+                await before.channel.delete(reason="removing empty voice")
+                c.execute("DELETE FROM voiceChannel WHERE userID=?", (member.id,))
+            if after.channel.id == voice_id:
                 try:
-                    return await self.create_custom_channel(member, after, conn, c, guild_id, voice_id)
+                    return await self.create_custom_channel(member, after, conn, c, guild_id)
                 except Exception as e:
-                    print(f"OnVoiceUpdate: {e}")
+                    print("OnVoiceUpdate:")
+                    traceback.print_exception(e)
             conn.commit()
 
 
     async def create_custom_channel(
             self,
             member: discord.Member,
-            after: discord.VoiceState,
+            after: Optional[discord.VoiceState],
             conn: sqlite3.Connection,
             c: sqlite3.Cursor,
-            guild_id: int,
-            voice_id: int
+            guild_id: int
         ) -> None:
-        if after.channel.id != voice_id:
+        if after.channel is None:
             return
         user_channel = FromDatabase.get_user_voice(member, c)
         if user_channel is not None:
             await member.send(f"You already have a channel at {self.bot.get_channel(user_channel[1]).mention}")
             return
+        
         voice = FromDatabase.get_voice_category(guild_id, c)
         setting = FromDatabase.get_settings(member, c)
         guild_setting = FromDatabase.get_guild_settings(guild_id, c)
@@ -136,18 +156,6 @@ class _Voice(commands.Cog):
         c.execute("INSERT INTO voiceChannel VALUES (?, ?)", (member_id, channel_id))
         conn.commit()
 
-        def check_empty_voice(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> bool:
-            print(f"check empty: {member}, {before}, {after}")
-            c.execute("SELECT * FROM voiceChannel WHERE userId=?", member.id)
-            channels = c.fetchall()
-            # get 2nd column of each found channel, put that in user_channels
-            user_channels: list[int] = [i[1] for i in channels]
-            return (len(before.channel.members) == 0 and before.channel.id in user_channels)
-
-        await self.bot.wait_for("voice_state_update", check=check_empty_voice)
-        await channel_2.delete()
-        # await asyncio.sleep(3) # why sleep here?
-        c.execute("DELETE FROM voiceChannel WHERE userID=?", (member_id,))
 
 
     def transform_settings(
