@@ -12,7 +12,6 @@ Tested in discord, works with setup, joining, creating.
 
 
 VOICE_DB = "voice.db"
-SELECT_VOICE_ID_FROM_VOICE_CHANNEL_WHERE_USER_ID = "SELECT voiceID FROM voiceChannel WHERE userID = ?"
 
 
 
@@ -24,6 +23,13 @@ def create_new_database() -> None:
     conn.close()
 
 class FromDatabase(object):
+    @classmethod
+    def get_voice_id_from_user(cls, member_id: int, c: sqlite3.Cursor) -> Optional[tuple[int]]:
+        c.execute(
+            "SELECT voiceID FROM voiceChannel WHERE userID = ?",
+            (member_id,)
+        )
+        return c.fetchone()
     @classmethod
     def get_user_voice(cls, member: discord.Member, c: sqlite3.Cursor) -> Optional[tuple[int, int]]:
         c.execute(
@@ -41,7 +47,7 @@ class FromDatabase(object):
         return c.fetchone()
 
     @classmethod
-    def get_setting(cls, member: discord.Member, c: sqlite3.Cursor) -> Optional[tuple[str, int]]:
+    def get_settings(cls, member: discord.Member, c: sqlite3.Cursor) -> Optional[tuple[str, int]]:
         c.execute(
                 "SELECT channelName, channelLimit FROM userSettings WHERE userID = ?",
                 (member.id,),
@@ -49,7 +55,7 @@ class FromDatabase(object):
         return c.fetchone()
 
     @classmethod
-    def get_guild_setting(cls, guild_id: int, c: sqlite3.Cursor) -> Optional[tuple[str, int]]:
+    def get_guild_settings(cls, guild_id: int, c: sqlite3.Cursor) -> Optional[tuple[str, int]]:
         c.execute(
                 "SELECT channelName, channelLimit FROM guildSettings WHERE guildID = ?",
                 (guild_id,)
@@ -105,8 +111,8 @@ class _Voice(commands.Cog):
             await asyncio.sleep(15)
             # sleeping would only DELAY spamming.
         voice = FromDatabase.get_voice_category(guild_id, c)
-        setting = FromDatabase.get_setting(member, c)
-        guild_setting = FromDatabase.get_guild_setting(guild_id, c)
+        setting = FromDatabase.get_settings(member, c)
+        guild_setting = FromDatabase.get_guild_settings(guild_id, c)
 
         name, limit = self.transform_settings(member, setting, guild_setting)
         category_id = voice[0]
@@ -267,9 +273,8 @@ class _Voice(commands.Cog):
         with sqlite3.connect(VOICE_DB) as conn:
             c = conn.cursor()
             if ctx.author.id == ctx.guild.owner.id or ctx.author.id in self.bot.owner_ids:
-                c.execute("SELECT * FROM guildSettings WHERE guildID = ?", (ctx.guild.id,))
-                voice = c.fetchone()
-                if voice is None:
+                settings = FromDatabase.get_guild_settings(ctx.guild.id, c)
+                if settings is None:
                     c.execute(
                         "INSERT INTO guildSettings VALUES (?, ?, ?)",
                         (ctx.guild.id, f"{ctx.author.name}'s channel", number),
@@ -296,7 +301,7 @@ class _Voice(commands.Cog):
         with sqlite3.connect(VOICE_DB) as conn:
             c = conn.cursor()
             author_id = ctx.author.id
-            c.execute(SELECT_VOICE_ID_FROM_VOICE_CHANNEL_WHERE_USER_ID, (author_id,))
+            voice = FromDatabase.get_voice_id_from_user(author_id, c)
             voice = c.fetchone()
             if voice is None:
                 await ctx.channel.send(f"{ctx.author.mention} You don't own a channel.")
@@ -313,8 +318,7 @@ class _Voice(commands.Cog):
         with sqlite3.connect(VOICE_DB) as conn:
             c = conn.cursor()
             author_id = ctx.author.id
-            c.execute(SELECT_VOICE_ID_FROM_VOICE_CHANNEL_WHERE_USER_ID, (author_id,))
-            voice = c.fetchone()
+            voice = FromDatabase.get_voice_id_from_user(author_id, c)
             if voice is None:
                 await ctx.channel.send(f"{ctx.author.mention} You don't own a channel.")
             else:
@@ -330,8 +334,7 @@ class _Voice(commands.Cog):
         with sqlite3.connect(VOICE_DB) as conn:
             c = conn.cursor()
             author_id = ctx.author.id
-            c.execute(SELECT_VOICE_ID_FROM_VOICE_CHANNEL_WHERE_USER_ID, (author_id,))
-            voice = c.fetchone()
+            voice = FromDatabase.get_voice_id_from_user(author_id, c)
             if voice is None:
                 await ctx.channel.send(f"{ctx.author.mention} You don't own a channel.")
             else:
@@ -349,8 +352,7 @@ class _Voice(commands.Cog):
             c = conn.cursor()
             author_id = ctx.author.id
             guild_id = ctx.guild.id
-            c.execute(SELECT_VOICE_ID_FROM_VOICE_CHANNEL_WHERE_USER_ID, (author_id,))
-            voice = c.fetchone()
+            voice = FromDatabase.get_voice_id_from_user(author_id, c)
             if voice is None:
                 await ctx.channel.send(f"{ctx.author.mention} You don't own a channel.")
             else:
@@ -373,8 +375,7 @@ class _Voice(commands.Cog):
         with sqlite3.connect(VOICE_DB) as conn:
             c = conn.cursor()
             author_id = ctx.author.id
-            c.execute(SELECT_VOICE_ID_FROM_VOICE_CHANNEL_WHERE_USER_ID, (author_id,))
-            voice = c.fetchone()
+            voice = FromDatabase.get_voice_id_from_user(author_id, c)
             if voice is None:
                 await ctx.channel.send(f"{ctx.author.mention} You don't own a channel.")
             else:
@@ -403,8 +404,7 @@ class _Voice(commands.Cog):
         with sqlite3.connect(VOICE_DB) as conn:
             c = conn.cursor()
             author_id = ctx.author.id
-            c.execute(SELECT_VOICE_ID_FROM_VOICE_CHANNEL_WHERE_USER_ID, (author_id,))
-            voice = c.fetchone()
+            voice = FromDatabase.get_voice_id_from_user(author_id, c)
             if voice is None:
                 await ctx.channel.send(f"{ctx.author.mention} You don't own a channel.")
             else:
