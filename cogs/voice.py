@@ -11,9 +11,8 @@ Tested in discord, works with setup, joining, creating.
 
 
 VOICE_DB = "voice.db"
-SELECT_VOICE_ID_FROM_VOICE_CHANNEL_WHERE_USER_ID = (
-    "SELECT voiceID FROM voiceChannel WHERE userID = ?"
-)
+SELECT_VOICE_ID_FROM_VOICE_CHANNEL_WHERE_USER_ID = "SELECT voiceID FROM voiceChannel WHERE userID = ?"
+
 
 class _Voice(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
@@ -38,11 +37,12 @@ class _Voice(commands.Cog):
                         c.execute("SELECT * FROM voiceChannel WHERE userID = ?", (member.id,))
                         cooldown = c.fetchone()
                         if cooldown is not None:
-                            await member.send(
-                                "Creating channels too quickly you've been put on a 15 second cooldown!"
-                            )
+                            await member.send("Creating channels too quickly you've been put on a 15 second cooldown!")
                             await asyncio.sleep(15)
-                        c.execute("SELECT voiceCategoryID FROM guild WHERE guildID = ?", (guild_id,))
+                        c.execute(
+                            "SELECT voiceCategoryID FROM guild WHERE guildID = ?",
+                            (guild_id,)
+                        )
                         voice = c.fetchone()
                         c.execute(
                             "SELECT channelName, channelLimit FROM userSettings WHERE userID = ?",
@@ -50,7 +50,8 @@ class _Voice(commands.Cog):
                         )
                         setting = c.fetchone()
                         c.execute(
-                            "SELECT channelLimit FROM guildSettings WHERE guildID = ?", (guild_id,)
+                            "SELECT channelLimit FROM guildSettings WHERE guildID = ?",
+                            (guild_id,)
                         )
                         guild_setting = c.fetchone()
                         if setting is None:
@@ -172,9 +173,7 @@ class _Voice(commands.Cog):
                             channel = await ctx.guild.create_voice_channel(
                                 channel.content, category=new_cat
                             )
-                            c.execute(
-                                "SELECT * FROM guild WHERE guildID = ? AND ownerID=?", (guild_id, author_id)
-                            )
+                            c.execute("SELECT * FROM guild WHERE guildID = ? AND ownerID=?", (guild_id, author_id))
                             voice = c.fetchone()
                             if voice is None:
                                 c.execute(
@@ -188,9 +187,7 @@ class _Voice(commands.Cog):
                                 )
                             await ctx.channel.send("**You are all setup and ready to go!**")
                         except Exception:
-                            await ctx.channel.send(
-                                "You didn't enter the names properly.\nUse `.voice setup` again!"
-                            )
+                            await ctx.channel.send("You didn't enter the names properly.\nUse `.voice setup` again!")
             else:
                 await ctx.channel.send(
                     f"{ctx.author.mention} only the owner of the server can setup the bot!"
@@ -237,9 +234,9 @@ class _Voice(commands.Cog):
             if voice is None:
                 await ctx.channel.send(f"{ctx.author.mention} You don't own a channel.")
             else:
-                channelID = voice[0]
+                channel_id = voice[0]
                 role = ctx.guild.default_role
-                channel = self.bot.get_channel(channelID)
+                channel = self.bot.get_channel(channel_id)
                 await channel.set_permissions(role, connect=False)
                 await ctx.channel.send(f"{ctx.author.mention} Voice chat locked! 🔒")
             conn.commit()
@@ -254,9 +251,9 @@ class _Voice(commands.Cog):
             if voice is None:
                 await ctx.channel.send(f"{ctx.author.mention} You don't own a channel.")
             else:
-                channelID = voice[0]
+                channel_id = voice[0]
                 role = ctx.guild.default_role
-                channel = self.bot.get_channel(channelID)
+                channel = self.bot.get_channel(channel_id)
                 await channel.set_permissions(role, connect=True)
                 await ctx.channel.send(f"{ctx.author.mention} Voice chat unlocked! 🔓")
             conn.commit()
@@ -351,13 +348,20 @@ class _Voice(commands.Cog):
                     f"{ctx.author.mention} You have changed the channel name to "
                     + "{}!".format(name)
                 )
-                c.execute("SELECT channelName FROM userSettings WHERE userID = ?", (author_id,))
+                c.execute(
+                    "SELECT channelName FROM userSettings WHERE userID = ?",
+                    (author_id,)
+                )
                 voice = c.fetchone()
                 if voice is None:
-                    c.execute("INSERT INTO userSettings VALUES (?, ?, ?)", (author_id, name, 0))
+                    c.execute(
+                        "INSERT INTO userSettings VALUES (?, ?, ?)",
+                        (author_id, name, 0)
+                    )
                 else:
                     c.execute(
-                        "UPDATE userSettings SET channelName = ? WHERE userID = ?", (name, author_id)
+                        "UPDATE userSettings SET channelName = ? WHERE userID = ?",
+                        (name, author_id)
                     )
             conn.commit()
 
@@ -372,7 +376,10 @@ class _Voice(commands.Cog):
                 await ctx.channel.send(f"{ctx.author.mention} you're not in a voice channel.")
             else:
                 author_id = ctx.author.id
-                c.execute("SELECT userID FROM voiceChannel WHERE voiceID = ?", (channel.id,))
+                c.execute(
+                    "SELECT userID FROM voiceChannel WHERE voiceID = ?",
+                    (channel.id,)
+                )
                 voice = c.fetchone()
                 if voice is None:
                     await ctx.channel.send(f"{ctx.author.mention} You can't own that channel!")
@@ -389,7 +396,8 @@ class _Voice(commands.Cog):
                             f"{ctx.author.mention} You are now the owner of the channel!"
                         )
                         c.execute(
-                            "UPDATE voiceChannel SET userID = ? WHERE voiceID = ?", (author_id, channel.id)
+                            "UPDATE voiceChannel SET userID = ? WHERE voiceID = ?",
+                            (author_id, channel.id)
                         )
                 conn.commit()
                 conn.close()
