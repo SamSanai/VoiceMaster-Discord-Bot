@@ -98,15 +98,10 @@ class _Voice(commands.Cog):
 
             if setting is None:
                 name = f"{member.name}'s channel"
-                if guild_setting is None:
-                    limit = 0
-                else:
-                    limit = guild_setting[0]
+                limit = 0 if guild_setting is None else guild_setting[0]
             else:
                 name = setting[0]
-                if guild_setting is None:
-                    limit = setting[1]
-                elif guild_setting is not None and setting[1] == 0:
+                if guild_setting is None or setting[1] == 0:
                     limit = guild_setting[0]
                 else:
                     limit = setting[1]
