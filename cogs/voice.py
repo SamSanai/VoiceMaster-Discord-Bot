@@ -50,6 +50,15 @@ class FromDatabase(object):
         guild_setting = c.fetchone()
         return guild_setting
 
+    @classmethod
+    def get_guild_voice(cls, guild_id: int, c: sqlite3.Cursor):
+        c.execute(
+                "SELECT voiceChannelID FROM guild WHERE guildID = ?",
+                (guild_id,)
+            )
+        voice = c.fetchone()
+        return voice
+
 
 class _Voice(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
@@ -65,11 +74,7 @@ class _Voice(commands.Cog):
         with sqlite3.connect(VOICE_DB) as conn:
             c = conn.cursor()
             guild_id = member.guild.id
-            c.execute(
-                "SELECT voiceChannelID FROM guild WHERE guildID = ?",
-                (guild_id,)
-            )
-            voice = c.fetchone()
+            voice = FromDatabase.get_guild_voice(guild_id, c)
             if voice is not None:
                 voice_id = voice[0]
                 try:
@@ -121,11 +126,12 @@ class _Voice(commands.Cog):
             conn.commit()
 
             def check_empty_voice(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> bool:
+                print(f"check empty: {member}, {before}, {after}")
                 c.execute("SELECT * FROM voiceChannel WHERE userId=?", member.id)
                 channels = c.fetchall()
                 # get 2nd column of each found channel, put that in user_channels
                 user_channels: list[int] = [i[1] for i in channels]
-                return (len(after.channel.members) == 0 and after.channel.id in user_channels)
+                return (len(before.channel.members) == 0 and before.channel.id in user_channels)
             await self.bot.wait_for("voice_state_update", check=check_empty_voice)
             await channel_2.delete()
             # await asyncio.sleep(3) # why sleep here?
@@ -189,13 +195,15 @@ class _Voice(commands.Cog):
             author_id = ctx.author.id
             if ctx.author.id == ctx.guild.owner_id or ctx.author.id in self.bot.owner_ids:
 
-                def check(m: commands.Context) -> bool:
-                    # Check what?
+                def check_if_setup_user(m: commands.Context) -> bool:
+                    """Check if message send, is from `.voice setup` user"""
                     return m.author.id == ctx.author.id
-                await ctx.channel.send("**You have 60 seconds to answer each question!**")
-                await ctx.channel.send("**Enter the name of the category you wish to create the channels in:(e.g Voice Channels)**")
+                await ctx.channel.send(dedent("""
+                    **You have 60 seconds to answer each question!**
+                    **Enter the name of the category you wish to create the channels in:(e.g Voice Channels)**"""
+                    ))
                 try:
-                    category = await self.bot.wait_for("message", check=check, timeout=60.0)
+                    category = await self.bot.wait_for("message", check=check_if_setup_user, timeout=60.0)
                 except asyncio.TimeoutError:
                     await ctx.channel.send("Took too long to answer!")
                 else:
@@ -204,7 +212,7 @@ class _Voice(commands.Cog):
                         "**Enter the name of the voice channel: (e.g Join To Create)**"
                     )
                     try:
-                        channel = await self.bot.wait_for("message", check=check, timeout=60.0)
+                        channel = await self.bot.wait_for("message", check=check_if_setup_user, timeout=60.0)
                     except asyncio.TimeoutError:
                         await ctx.channel.send("Took too long to answer!")
                     else:
@@ -225,7 +233,8 @@ class _Voice(commands.Cog):
                                     (guild_id, author_id, channel.id, new_cat.id, guild_id),
                                 )
                             await ctx.channel.send("**You are all setup and ready to go!**")
-                        except Exception:
+                        except Exception as e:
+                            print(f"setup error {e}")
                             await ctx.channel.send("You didn't enter the names properly.\nUse `.voice setup` again!")
             else:
                 await ctx.channel.send(
