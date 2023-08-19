@@ -1,4 +1,5 @@
 import asyncio
+from functools import partial
 import sqlite3
 from textwrap import dedent
 from typing import Optional
@@ -21,6 +22,11 @@ def create_new_database() -> None:
         conn.executescript(sql_file.read())
 
     conn.close()
+
+def check_if_setup_user(m: commands.Context, ctx: commands.Context) -> bool:
+    """Check if message send, is from `.voice setup` user"""
+    return m.author.id == ctx.author.id
+
 
 class FromDatabase(object):
     @classmethod
@@ -216,56 +222,55 @@ class _Voice(commands.Cog):
     async def setup(self, ctx: commands.Context) -> None:
         with sqlite3.connect(VOICE_DB) as conn:
             c = conn.cursor()
-            guild_id = ctx.guild.id
             author_id = ctx.author.id
             if ctx.author.id == ctx.guild.owner_id or ctx.author.id in self.bot.owner_ids:
-
-                def check_if_setup_user(m: commands.Context) -> bool:
-                    """Check if message send, is from `.voice setup` user"""
-                    return m.author.id == ctx.author.id
                 await ctx.channel.send(dedent("""
                     **You have 60 seconds to answer each question!**
                     **Enter the name of the category you wish to create the channels in:(e.g Voice Channels)**"""
                     ))
+                guild_id = ctx.guild.id
+                check_func = partial(check_if_setup_user, ctx=ctx)
+                category, channel = await self.get_setup_answers(ctx, check_func)
+                new_cat = await ctx.guild.create_category_channel(category.content)
                 try:
-                    category = await self.bot.wait_for("message", check=check_if_setup_user, timeout=60.0)
                 except asyncio.TimeoutError:
                     await ctx.channel.send("Took too long to answer!")
                 else:
-                    new_cat = await ctx.guild.create_category_channel(category.content)
-                    await ctx.channel.send(
-                        "**Enter the name of the voice channel: (e.g Join To Create)**"
-                    )
                     try:
-                        channel = await self.bot.wait_for("message", check=check_if_setup_user, timeout=60.0)
-                    except asyncio.TimeoutError:
-                        await ctx.channel.send("Took too long to answer!")
-                    else:
-                        try:
-                            channel = await ctx.guild.create_voice_channel(
-                                channel.content, category=new_cat
+                        channel = await ctx.guild.create_voice_channel(
+                            channel.content, category=new_cat
+                        )
+                        c.execute("SELECT * FROM guild WHERE guildID = ? AND ownerID=?", (guild_id, author_id))
+                        voice = c.fetchone()
+                        if voice is None:
+                            c.execute(
+                                "INSERT INTO guild VALUES (?, ?, ?, ?)",
+                                (guild_id, author_id, channel.id, new_cat.id),
                             )
-                            c.execute("SELECT * FROM guild WHERE guildID = ? AND ownerID=?", (guild_id, author_id))
-                            voice = c.fetchone()
-                            if voice is None:
-                                c.execute(
-                                    "INSERT INTO guild VALUES (?, ?, ?, ?)",
-                                    (guild_id, author_id, channel.id, new_cat.id),
-                                )
-                            else:
-                                c.execute(
-                                    "UPDATE guild SET guildID = ?, ownerID = ?, voiceChannelID = ?, voiceCategoryID = ? WHERE guildID = ?",
-                                    (guild_id, author_id, channel.id, new_cat.id, guild_id),
-                                )
-                            await ctx.channel.send("**You are all setup and ready to go!**")
-                        except Exception as e:
-                            print(f"setup error {e}")
-                            await ctx.channel.send("You didn't enter the names properly.\nUse `.voice setup` again!")
+                        else:
+                            c.execute(
+                                "UPDATE guild SET guildID = ?, ownerID = ?, voiceChannelID = ?, voiceCategoryID = ? WHERE guildID = ?",
+                                (guild_id, author_id, channel.id, new_cat.id, guild_id),
+                            )
+                        await ctx.channel.send("**You are all setup and ready to go!**")
+                    except Exception as e:
+                        print(f"setup error {e}")
+                        await ctx.channel.send("You didn't enter the names properly.\nUse `.voice setup` again!")
             else:
                 await ctx.channel.send(
                     f"{ctx.author.mention} only the owner of the server can setup the bot!"
                 )
             conn.commit()
+
+
+    async def get_setup_answers(self, ctx: commands.Context, check_func) -> tuple[discord.Message, discord.Message]:
+        try:
+            category = await self.bot.wait_for("message", check=check_func, timeout=60.0)
+            await ctx.channel.send("**Enter the name of the voice channel: (e.g Join To Create)**")
+            channel = await self.bot.wait_for("message", check=check_func, timeout=60.0)
+        except asyncio.TimeoutError:
+            await ctx.channel.send("Took too long to answer!")
+        return category, channel
 
 
     @commands.command()
