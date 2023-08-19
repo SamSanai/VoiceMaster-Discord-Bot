@@ -233,29 +233,25 @@ class _Voice(commands.Cog):
                 category, channel = await self.get_setup_answers(ctx, check_func)
                 new_cat = await ctx.guild.create_category_channel(category.content)
                 try:
-                except asyncio.TimeoutError:
-                    await ctx.channel.send("Took too long to answer!")
-                else:
-                    try:
-                        channel = await ctx.guild.create_voice_channel(
-                            channel.content, category=new_cat
+                    channel = await ctx.guild.create_voice_channel(
+                        channel.content, category=new_cat
+                    )
+                    c.execute("SELECT * FROM guild WHERE guildID = ? AND ownerID=?", (guild_id, author_id))
+                    voice = c.fetchone()
+                    if voice is None:
+                        c.execute(
+                            "INSERT INTO guild VALUES (?, ?, ?, ?)",
+                            (guild_id, author_id, channel.id, new_cat.id),
                         )
-                        c.execute("SELECT * FROM guild WHERE guildID = ? AND ownerID=?", (guild_id, author_id))
-                        voice = c.fetchone()
-                        if voice is None:
-                            c.execute(
-                                "INSERT INTO guild VALUES (?, ?, ?, ?)",
-                                (guild_id, author_id, channel.id, new_cat.id),
-                            )
-                        else:
-                            c.execute(
-                                "UPDATE guild SET guildID = ?, ownerID = ?, voiceChannelID = ?, voiceCategoryID = ? WHERE guildID = ?",
-                                (guild_id, author_id, channel.id, new_cat.id, guild_id),
-                            )
-                        await ctx.channel.send("**You are all setup and ready to go!**")
-                    except Exception as e:
-                        print(f"setup error {e}")
-                        await ctx.channel.send("You didn't enter the names properly.\nUse `.voice setup` again!")
+                    else:
+                        c.execute(
+                            "UPDATE guild SET guildID = ?, ownerID = ?, voiceChannelID = ?, voiceCategoryID = ? WHERE guildID = ?",
+                            (guild_id, author_id, channel.id, new_cat.id, guild_id),
+                        )
+                    await ctx.channel.send("**You are all setup and ready to go!**")
+                except Exception as e:
+                    print(f"setup error {e}")
+                    await ctx.channel.send("You didn't enter the names properly.\nUse `.voice setup` again!")
             else:
                 await ctx.channel.send(
                     f"{ctx.author.mention} only the owner of the server can setup the bot!"
