@@ -1,0 +1,6 @@
+services:
+  app:
+    build: .
+    env_file: "config.env"
+    volumes:
+      - ${PWD}/voice.db:/voice.db

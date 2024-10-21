@@ -1,12 +1,19 @@
-import discord
-import asyncio
+import discord, asyncio, sqlite3, os
 from discord.ext import commands
-import sqlite3
 
 
 class voice(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+        conn = sqlite3.connect('voice.db')
+        c = conn.cursor()
+        c.execute("CREATE TABLE IF NOT EXISTS 'voiceChannel' ('userID' INTEGER, 'voiceID' INTEGER);")
+        c.execute("CREATE TABLE IF NOT EXISTS 'guild' ('guildID' INTEGER, 'ownerID' INTEGER, 'voiceChannelID' INTEGER, 'voiceCategoryID' INTEGER);")
+        c.execute("CREATE TABLE IF NOT EXISTS 'userSettings' ('userID' INTEGER, 'channelName' TEXT, 'channelLimit' INTEGER);")
+        c.execute("CREATE TABLE IF NOT EXISTS 'guildSettings' ('guildID' INTEGER, 'channelName' TEXT, 'channelLimit' INTEGER);")
+        conn.commit()
+        conn.close()
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
@@ -27,7 +34,7 @@ class voice(commands.Cog):
                         pass
                     else:
                         await member.send("Creating channels too quickly you've been put on a 15 second cooldown!")
-                        await asyncio.sleep(15)
+                        return
                     c.execute("SELECT voiceCategoryID FROM guild WHERE guildID = ?", (guildID,))
                     voice=c.fetchone()
                     c.execute("SELECT channelName, channelLimit FROM userSettings WHERE userID = ?", (member.id,))
@@ -96,7 +103,7 @@ class voice(commands.Cog):
         c = conn.cursor()
         guildID = ctx.guild.id
         id = ctx.author.id
-        if ctx.author.id == ctx.guild.owner_id or ctx.author.id == 151028268856770560:
+        if ctx.author.id == ctx.guild.owner_id or ctx.author.id == os.getenv('DISCORD_ADMIN'):
             def check(m):
                 return m.author.id == ctx.author.id
             await ctx.channel.send("**You have 60 seconds to answer each question!**")
@@ -133,7 +140,7 @@ class voice(commands.Cog):
     async def setlimit(self, ctx, num):
         conn = sqlite3.connect('voice.db')
         c = conn.cursor()
-        if ctx.author.id == ctx.guild.owner.id or ctx.author.id == 151028268856770560:
+        if ctx.author.id == ctx.guild.owner.id or ctx.author.id == os.getenv('DISCORD_ADMIN'):
             c.execute("SELECT * FROM guildSettings WHERE guildID = ?", (ctx.guild.id,))
             voice=c.fetchone()
             if voice is None:
@@ -252,6 +259,54 @@ class voice(commands.Cog):
         conn.commit()
         conn.close()
 
+    @voice.command()
+    async def purge(self, ctx):
+        conn = sqlite3.connect('voice.db')
+        c = conn.cursor()
+        guild = ctx.message.guild
+        guildID = ctx.guild.id
+        id = ctx.author.id
+        if ctx.author.id == ctx.guild.owner_id or ctx.author.id == os.getenv('DISCORD_ADMIN'):
+            def check(m):
+                return m.author.id == ctx.author.id
+            await ctx.channel.send("**Do you really want to purge everything?** You have 60 seconds to type YES/Y")
+            try:
+                confirm = await self.bot.wait_for('message', check=check, timeout = 60.0)
+            except asyncio.TimeoutError:
+                await ctx.channel.send('Took too long to answer!')
+            else:
+                if confirm.content.lower() == "yes" or confirm.content.lower() == "y":
+                    c.execute('SELECT * FROM voiceChannel')
+                    for row in c:
+                        voiceID = int(row[1])
+                        existing_channel = discord.utils.get(guild.channels, id=voiceID)
+                        if existing_channel is not None:
+                            await existing_channel.delete()
+
+                        c.execute('DELETE FROM voiceChannel WHERE voiceID=?', (voiceID,))
+                        await ctx.channel.send(f'Channel with ID "{voiceID}" purged')
+
+                    c.execute("SELECT * FROM guild WHERE guildID = ?", (guildID,))
+                    res=c.fetchone()
+                    del_voiceChannelID = res[2]
+                    del_voiceCategoryID = res[3]
+
+                    existing_channel = discord.utils.get(guild.channels, id=del_voiceChannelID)
+                    if existing_channel is not None:
+                        await existing_channel.delete()
+
+                    existing_channel = discord.utils.get(guild.channels, id=del_voiceCategoryID)
+                    if existing_channel is not None:
+                        await existing_channel.delete()
+
+                    c.execute('DELETE FROM guild WHERE guildID=?', (guildID,))
+                    await ctx.channel.send("**Everything purged!**")
+                else:
+                    await ctx.channel.send('abort')
+        else:
+            await ctx.channel.send(f"{ctx.author.mention} only the owner of the server can setup the bot!")
+        conn.commit()
+        conn.close()
 
     @voice.command()
     async def name(self, ctx,*, name):

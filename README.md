@@ -37,6 +37,14 @@ https://voicemaster.xyz/
 
 # How to setup the bot:
 
+## Docker Compose
+
+1. Copy `config.env.default`, rename it to `config.env` and insert your bot token
+
+2. Execute `docker compose up -d`
+
+## Bare Metal
+
 1.Download python using the following link:
 
 	https://www.python.org/downloads/
