@@ -2,6 +2,19 @@ import discord
 from discord.ext import commands
 import traceback
 import sys
+import json
+
+
+__config = dict()
+
+try:
+    with open("config.json", 'r', encoding="utf-8") as _f:
+        __config = json.loads(_f.read())
+        assert __config["token"]
+except Exception as e:
+    print("error reading config\n", e)
+    exit(1)
+
 
 intents = discord.Intents.default()
 #Message content intent needs to be enabled in the developer portal for your chosen bot.
@@ -30,4 +43,4 @@ async def on_ready():
             print(f'Failed to load extension {extension}.', file=sys.stderr)
             traceback.print_exc()
 
-bot.run(DISCORD_TOKEN)
+bot.run(__config["token"])
