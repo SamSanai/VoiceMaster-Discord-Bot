@@ -1,0 +1,12 @@
+[project]
+name = "voice-bot"
+version = "1.0.0"
+description = "Discord voice channel bot"
+requires-python = ">=3.13"
+dependencies = [
+    "discord.py>=2.6.4",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
